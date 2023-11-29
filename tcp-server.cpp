@@ -1,5 +1,6 @@
 #include "tcp-server.hpp"
 
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -38,8 +39,15 @@ TcpServer::~TcpServer() {
   close(listener_);
 }
 
-std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection() {
+std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection(bool block) {
+  if (!block) {
+    fcntl(listener_, O_NONBLOCK);
+  }
   int client = accept(listener_, NULL, NULL);
+  if (!block) {
+    fcntl(listener_, ~O_NONBLOCK);
+  }
+
   if (client < 0) {
     throw std::ios_base::failure("cannot accept");
   }
@@ -53,12 +61,18 @@ void TcpServer::CloseConnection(std::list<Client>::iterator client) {
   clients_.erase(client);
 }
 
-std::string TcpServer::Receive(std::list<Client>::iterator client) {
+std::string TcpServer::Receive(std::list<Client>::iterator client, bool block) {
   std::string received;
 
   char buff[kRecvBuffSize];
-  while (true) {
+  for (int i = 0;; ++i) {
+    if (i != 0 || !block) {
+      fcntl(client->dp_, O_NONBLOCK);
+    }
     int b_recv = recv(client->dp_, &buff, kRecvBuffSize, 0);
+    if (i != 0 || !block) {
+      fcntl(client->dp_, ~O_NONBLOCK);
+    }
     if (b_recv < 0) {
       throw std::ios_base::failure("cannot receive");
     }

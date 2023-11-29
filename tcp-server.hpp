@@ -17,10 +17,10 @@ class TcpServer {
   TcpServer(int protocol, int port);
   ~TcpServer();
 
-  std::list<Client>::iterator AcceptConnection();
+  std::list<Client>::iterator AcceptConnection(bool block = true);
   void CloseConnection(std::list<Client>::iterator client);
 
-  std::string Receive(std::list<Client>::iterator client);
+  std::string Receive(std::list<Client>::iterator client, bool block = true);
   bool Send(std::list<Client>::iterator client, const std::string& message);
 
  private:

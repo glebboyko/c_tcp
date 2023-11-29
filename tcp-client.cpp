@@ -1,5 +1,6 @@
 #include "tcp-client.hpp"
 
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -26,12 +27,18 @@ TcpClient::TcpClient(int protocol, int port, unsigned int server_addr) {
 
 TcpClient::~TcpClient() { close(connection_); }
 
-std::string TcpClient::Receive() {
+std::string TcpClient::Receive(bool block) {
   std::string received;
 
   char buff[kRecvBuffSize];
-  while (true) {
+  for (int i = 0;; ++i) {
+    if (i != 0 || !block) {
+      fcntl(connection_, O_NONBLOCK);
+    }
     int b_recv = recv(connection_, &buff, kRecvBuffSize, 0);
+    if (i != 0 || !block) {
+      fcntl(connection_, ~O_NONBLOCK);
+    }
     if (b_recv < 0) {
       throw std::ios_base::failure("cannot receive");
     }
