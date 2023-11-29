@@ -39,16 +39,8 @@ TcpServer::~TcpServer() {
   close(listener_);
 }
 
-std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection(bool block) {
-  if (!block) {
-    int flags = fcntl(listener_, F_GETFL);
-    fcntl(listener_, F_SETFL, flags | O_NONBLOCK);
-  }
+std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection() {
   int client = accept(listener_, NULL, NULL);
-  if (!block) {
-    int flags = fcntl(listener_, F_GETFL);
-    fcntl(listener_, F_SETFL, flags & ~O_NONBLOCK);
-  }
 
   if (client < 0) {
     throw std::ios_base::failure("cannot accept");
@@ -63,31 +55,17 @@ void TcpServer::CloseConnection(std::list<Client>::iterator client) {
   clients_.erase(client);
 }
 
-std::string TcpServer::Receive(std::list<Client>::iterator client, bool block) {
+std::string TcpServer::Receive(std::list<Client>::iterator client) {
   std::string received;
 
   char buff[kRecvBuffSize];
-  for (int i = 0;; ++i) {
-    if (i != 0 || !block) {
-      int flags = fcntl(client->dp_, F_GETFL);
-      fcntl(client->dp_, F_SETFL, flags | O_NONBLOCK);
-    }
-    int b_recv = recv(client->dp_, &buff, kRecvBuffSize, 0);
-    if (i != 0 || !block) {
-      int flags = fcntl(client->dp_, F_GETFL);
-      fcntl(client->dp_, F_SETFL, flags & ~O_NONBLOCK);
-    }
-    if (b_recv < 0) {
-      throw std::ios_base::failure("cannot receive");
-    }
-    if (b_recv == 0) {
-      break;
-    }
-    for (int i = 0; i < b_recv; ++i) {
-      received.push_back(buff[i]);
-    }
+  int b_recv = recv(client->dp_, &buff, kRecvBuffSize, 0);
+  if (b_recv <= 0) {
+    throw std::ios_base::failure("cannot receive");
   }
-
+  for (int i = 0; i < b_recv; ++i) {
+    received.push_back(buff[i]);
+  }
   received.push_back('\0');
   return received;
 }

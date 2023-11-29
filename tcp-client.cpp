@@ -31,27 +31,14 @@ std::string TcpClient::Receive(bool block) {
   std::string received;
 
   char buff[kRecvBuffSize];
-  for (int i = 0;; ++i) {
-    if (i != 0 || !block) {
-      int flags = fcntl(connection_, F_GETFL);
-      fcntl(connection_, F_SETFL, flags | O_NONBLOCK);
-    }
-    int b_recv = recv(connection_, &buff, kRecvBuffSize, 0);
-    if (i != 0 || !block) {
-      int flags = fcntl(connection_, F_GETFL);
-      fcntl(connection_, F_SETFL, flags & ~O_NONBLOCK);
-    }
-    if (b_recv < 0) {
-      throw std::ios_base::failure("cannot receive");
-    }
-    if (b_recv == 0) {
-      break;
-    }
-    for (int i = 0; i < b_recv; ++i) {
-      received.push_back(buff[i]);
-    }
+  int b_recv = recv(connection_, &buff, kRecvBuffSize, 0);
+  if (b_recv <= 0) {
+    throw std::ios_base::failure("cannot receive");
   }
 
+  for (int i = 0; i < b_recv; ++i) {
+    received.push_back(buff[i]);
+  }
   received.push_back('\0');
   return received;
 }

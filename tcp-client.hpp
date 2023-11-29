@@ -8,7 +8,7 @@ class TcpClient {
   TcpClient(int protocol, int port, unsigned int server_addr);
   ~TcpClient();
 
-  std::string Receive(bool block = false);
+  std::string Receive();
   bool Send(const std::string& message);
 
  private:
