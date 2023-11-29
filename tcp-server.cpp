@@ -41,11 +41,11 @@ TcpServer::~TcpServer() {
 
 std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection(bool block) {
   if (!block) {
-    fcntl(listener_, O_NONBLOCK);
+    fcntl(listener_, F_SETFL, O_NONBLOCK);
   }
   int client = accept(listener_, NULL, NULL);
   if (!block) {
-    fcntl(listener_, ~O_NONBLOCK);
+    fcntl(listener_, F_SETFL, ~O_NONBLOCK);
   }
 
   if (client < 0) {
@@ -67,11 +67,11 @@ std::string TcpServer::Receive(std::list<Client>::iterator client, bool block) {
   char buff[kRecvBuffSize];
   for (int i = 0;; ++i) {
     if (i != 0 || !block) {
-      fcntl(client->dp_, O_NONBLOCK);
+      fcntl(client->dp_, F_SETFL, O_NONBLOCK);
     }
     int b_recv = recv(client->dp_, &buff, kRecvBuffSize, 0);
     if (i != 0 || !block) {
-      fcntl(client->dp_, ~O_NONBLOCK);
+      fcntl(client->dp_, F_SETFL, ~O_NONBLOCK);
     }
     if (b_recv < 0) {
       throw std::ios_base::failure("cannot receive");
