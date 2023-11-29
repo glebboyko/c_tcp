@@ -27,7 +27,7 @@ TcpClient::TcpClient(int protocol, int port, unsigned int server_addr) {
 
 TcpClient::~TcpClient() { close(connection_); }
 
-std::string TcpClient::Receive(bool block) {
+std::string TcpClient::Receive() {
   std::string received;
 
   char buff[kRecvBuffSize];
