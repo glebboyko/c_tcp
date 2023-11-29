@@ -31,22 +31,44 @@ std::string TcpClient::Receive() {
   std::string received;
 
   char buff[kRecvBuffSize];
+  // receive number of bytes to receive
   int b_recv = recv(connection_, &buff, kRecvBuffSize, 0);
   if (b_recv <= 0) {
     throw std::ios_base::failure("cannot receive");
   }
+  int b_num;
+  sscanf(buff, "%d", &b_num);
 
-  for (int i = 0; i < b_recv; ++i) {
-    received.push_back(buff[i]);
+  // receive message
+  int b_received = 0;
+  while (b_received < b_num) {
+    b_recv = recv(connection_, &buff, kRecvBuffSize, 0);
+    if (b_recv <= 0) {
+      throw std::ios_base::failure("cannot receive");
+    }
+    b_received += b_recv;
+
+    for (int i = 0; i < b_recv; ++i) {
+      received.push_back(buff[i]);
+    }
   }
-  received.push_back('\0');
   return received;
 }
 
 bool TcpClient::Send(const std::string& message) {
-  int b_sent = send(connection_, message.c_str(), message.size(), 0);
+  // send number of bytes to send
+  char num_of_bytes[sizeof(int) + 1];
+  sprintf(num_of_bytes, "%d", message.size());
+  int b_sent = send(connection_, num_of_bytes, sizeof(int) + 1, 0);
   if (b_sent < 0) {
     throw std::ios_base::failure("cannot send");
   }
+
+  // send message
+  b_sent = send(connection_, message.c_str(), message.size(), 0);
+  if (b_sent < 0) {
+    throw std::ios_base::failure("cannot send");
+  }
+
   return b_sent == message.size();
 }
