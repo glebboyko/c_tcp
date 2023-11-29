@@ -9,13 +9,13 @@
 #include <list>
 #include <string>
 
-TcpServer::TcpServer(unsigned char domain_space, int protocol, int port) {
-  listener_ = socket(domain_space, SOCK_STREAM, protocol);
+TcpServer::TcpServer(int protocol, int port) {
+  listener_ = socket(AF_INET, SOCK_STREAM, protocol);
   if (listener_ < 0) {
     throw std::ios_base::failure("cannot listen");
   }
 
-  sockaddr_in addr = {.sin_family = domain_space,
+  sockaddr_in addr = {.sin_family = AF_INET,
                       .sin_port = htons(port),
                       .sin_addr = {htonl(INADDR_ANY)}};
 

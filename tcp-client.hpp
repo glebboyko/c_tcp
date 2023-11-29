@@ -5,8 +5,7 @@
 
 class TcpClient {
  public:
-  TcpClient(unsigned char domain_space, int protocol, int port,
-            unsigned int server_addr);
+  TcpClient(int protocol, int port, unsigned int server_addr);
   ~TcpClient();
 
   std::string Receive();

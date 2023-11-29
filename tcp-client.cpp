@@ -9,14 +9,13 @@
 #include <list>
 #include <string>
 
-TcpClient::TcpClient(unsigned char domain_space, int protocol, int port,
-                     unsigned int server_addr) {
-  connection_ = socket(domain_space, SOCK_STREAM, 0);
+TcpClient::TcpClient(int protocol, int port, unsigned int server_addr) {
+  connection_ = socket(AF_INET, SOCK_STREAM, 0);
   if (connection_ < 0) {
     throw std::ios_base::failure("cannot create socket");
   }
 
-  sockaddr_in addr = {.sin_family = domain_space,
+  sockaddr_in addr = {.sin_family = AF_INET,
                       .sin_port = htons(port),
                       .sin_addr = {htonl(server_addr)}};
   if (connect(connection_, (sockaddr*)&addr, sizeof(addr)) < 0) {

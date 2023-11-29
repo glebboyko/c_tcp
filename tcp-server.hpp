@@ -14,7 +14,7 @@ class TcpServer {
     friend TcpServer;
   };
 
-  TcpServer(unsigned char domain_space, int protocol, int port);
+  TcpServer(int protocol, int port);
   ~TcpServer();
 
   auto AcceptConnection();
