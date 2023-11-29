@@ -26,6 +26,4 @@ class TcpServer {
  private:
   int listener_;
   std::list<Client> clients_;
-
-  const int kRecvBuffSize = 1024;
 };

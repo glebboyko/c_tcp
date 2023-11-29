@@ -30,27 +30,24 @@ TcpClient::~TcpClient() { close(connection_); }
 std::string TcpClient::Receive() {
   std::string received;
 
-  char buff[kRecvBuffSize];
+  char num_buff[sizeof(int) + 1];
   // receive number of bytes to receive
-  int b_recv = recv(connection_, &buff, kRecvBuffSize, 0);
+  int b_recv = recv(connection_, &num_buff, sizeof(int) + 1, 0);
   if (b_recv <= 0) {
     throw std::ios_base::failure("cannot receive");
   }
   int b_num;
-  sscanf(buff, "%d", &b_num);
+  sscanf(num_buff, "%d", &b_num);
 
   // receive message
-  int b_received = 0;
-  while (b_received < b_num) {
-    b_recv = recv(connection_, &buff, kRecvBuffSize, 0);
-    if (b_recv <= 0) {
-      throw std::ios_base::failure("cannot receive");
-    }
-    b_received += b_recv;
-
-    for (int i = 0; i < b_recv; ++i) {
-      received.push_back(buff[i]);
-    }
+  char* buff = new char[b_num];
+  b_recv = recv(connection_, buff, b_num, 0);
+  if (b_recv <= 0) {
+    delete[] buff;
+    throw std::ios_base::failure("cannot receive");
+  }
+  for (int i = 0; i < b_recv; ++i) {
+    received.push_back(buff[i]);
   }
   return received;
 }

@@ -13,6 +13,4 @@ class TcpClient {
 
  private:
   int connection_;
-
-  const int kRecvBuffSize = 1024;
 };
