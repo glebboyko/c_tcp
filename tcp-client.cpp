@@ -33,11 +33,13 @@ std::string TcpClient::Receive(bool block) {
   char buff[kRecvBuffSize];
   for (int i = 0;; ++i) {
     if (i != 0 || !block) {
-      fcntl(connection_, F_SETFL, O_NONBLOCK);
+      int flags = fcntl(connection_, F_GETFL);
+      fcntl(connection_, F_SETFL, flags | O_NONBLOCK);
     }
     int b_recv = recv(connection_, &buff, kRecvBuffSize, 0);
     if (i != 0 || !block) {
-      fcntl(connection_, F_SETFL, ~O_NONBLOCK);
+      int flags = fcntl(connection_, F_GETFL);
+      fcntl(connection_, F_SETFL, flags & ~O_NONBLOCK);
     }
     if (b_recv < 0) {
       throw std::ios_base::failure("cannot receive");
