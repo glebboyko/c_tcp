@@ -12,7 +12,7 @@
 TcpServer::TcpServer(int protocol, int port) {
   listener_ = socket(AF_INET, SOCK_STREAM, protocol);
   if (listener_ < 0) {
-    throw std::ios_base::failure("cannot listen");
+    throw std::ios_base::failure("cannot create socket");
   }
 
   sockaddr_in addr = {.sin_family = AF_INET,
@@ -22,6 +22,11 @@ TcpServer::TcpServer(int protocol, int port) {
   if (bind(listener_, (sockaddr*)&addr, sizeof(addr)) < 0) {
     close(listener_);
     throw std::ios_base::failure("cannot bind");
+  }
+
+  if (listen(listener_, 1) < 0) {
+    close(listener_);
+    throw std::ios_base::failure("cannot listen");
   }
 }
 
