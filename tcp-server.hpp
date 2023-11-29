@@ -17,7 +17,7 @@ class TcpServer {
   TcpServer(int protocol, int port);
   ~TcpServer();
 
-  auto AcceptConnection();
+  std::list<Client>::iterator AcceptConnection();
   void CloseConnection(std::list<Client>::iterator client);
 
   std::string Receive(std::list<Client>::iterator client);

@@ -33,7 +33,7 @@ TcpServer::~TcpServer() {
   close(listener_);
 }
 
-auto TcpServer::AcceptConnection() {
+std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection() {
   int client = accept(listener_, NULL, NULL);
   if (client < 0) {
     throw std::ios_base::failure("cannot accept");
