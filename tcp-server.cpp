@@ -58,7 +58,7 @@ void TcpServer::CloseConnection(std::list<Client>::iterator client) {
 
 std::string TcpServer::Receive(std::list<Client>::iterator client) {
   try {
-    return ::Receive(client->dp_);
+    return TCP::Receive(client->dp_);
   } catch (TcpException& tcp_exception) {
     if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
       CloseConnection(client);
@@ -69,7 +69,7 @@ std::string TcpServer::Receive(std::list<Client>::iterator client) {
 
 void TcpServer::Send(std::list<Client>::iterator client,
                      const std::string& message) {
-  ::Send(client->dp_, message);
+  TCP::Send(client->dp_, message);
 }
 
 }  // namespace TCP
