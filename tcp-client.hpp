@@ -9,7 +9,7 @@ class TcpClient {
   ~TcpClient();
 
   std::string Receive();
-  bool Send(const std::string& message);
+  void Send(const std::string& message);
 
  private:
   int connection_;

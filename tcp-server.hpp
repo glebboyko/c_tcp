@@ -21,7 +21,7 @@ class TcpServer {
   void CloseConnection(std::list<Client>::iterator client);
 
   std::string Receive(std::list<Client>::iterator client);
-  bool Send(std::list<Client>::iterator client, const std::string& message);
+  void Send(std::list<Client>::iterator client, const std::string& message);
 
  private:
   int listener_;

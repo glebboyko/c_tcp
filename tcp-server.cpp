@@ -67,7 +67,7 @@ std::string TcpServer::Receive(std::list<Client>::iterator client) {
   }
 }
 
-bool TcpServer::Send(std::list<Client>::iterator client,
+void TcpServer::Send(std::list<Client>::iterator client,
                      const std::string& message) {
-  return ::Send(client->dp_, message);
+  ::Send(client->dp_, message);
 }

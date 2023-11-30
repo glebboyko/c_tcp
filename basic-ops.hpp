@@ -33,4 +33,4 @@ class TcpException : public std::exception {
 };
 
 std::string Receive(int socket);
-bool Send(int socket, const std::string& message);
+void Send(int socket, const std::string& message);

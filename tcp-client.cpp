@@ -32,6 +32,6 @@ TcpClient::~TcpClient() { close(connection_); }
 
 std::string TcpClient::Receive() { return ::Receive(connection_); }
 
-bool TcpClient::Send(const std::string& message) {
-  return ::Send(connection_, message);
+void TcpClient::Send(const std::string& message) {
+  ::Send(connection_, message);
 }

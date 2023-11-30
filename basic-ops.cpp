@@ -73,7 +73,7 @@ std::string Receive(int socket) {
   return received;
 }
 
-bool Send(int socket, const std::string& message) {
+void Send(int socket, const std::string& message) {
   // send number of bytes to send
   char num_of_bytes[sizeof(int) + 1];
   sprintf(num_of_bytes, "%d", message.size());
@@ -87,6 +87,4 @@ bool Send(int socket, const std::string& message) {
   if (b_sent < 0) {
     throw TcpException(TcpException::Sending, errno);
   }
-
-  return b_sent == message.size();
 }
