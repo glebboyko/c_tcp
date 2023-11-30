@@ -10,10 +10,13 @@
 #include <list>
 #include <string>
 
+#include "basic-ops.hpp"
+
 TcpClient::TcpClient(int protocol, int port, const char* server_addr) {
   connection_ = socket(AF_INET, SOCK_STREAM, 0);
   if (connection_ < 0) {
-    throw std::ios_base::failure("cannot create socket");
+    throw std::ios_base::failure("cannot create socket " +
+                                 std::to_string(errno));
   }
 
   sockaddr_in addr = {.sin_family = AF_INET,
@@ -21,51 +24,14 @@ TcpClient::TcpClient(int protocol, int port, const char* server_addr) {
                       .sin_addr = {inet_addr(server_addr)}};
   if (connect(connection_, (sockaddr*)&addr, sizeof(addr)) < 0) {
     close(connection_);
-    throw std::ios_base::failure("cannot connect");
+    throw std::ios_base::failure("cannot connect " + std::to_string(errno));
   }
 }
 
 TcpClient::~TcpClient() { close(connection_); }
 
-std::string TcpClient::Receive() {
-  std::string received;
-
-  char num_buff[sizeof(int) + 1];
-  // receive number of bytes to receive
-  int b_recv = recv(connection_, &num_buff, sizeof(int) + 1, 0);
-  if (b_recv <= 0) {
-    throw std::ios_base::failure("cannot receive");
-  }
-  int b_num;
-  sscanf(num_buff, "%d", &b_num);
-
-  // receive message
-  char* buff = new char[b_num];
-  b_recv = recv(connection_, buff, b_num, 0);
-  if (b_recv <= 0) {
-    delete[] buff;
-    throw std::ios_base::failure("cannot receive");
-  }
-  for (int i = 0; i < b_recv; ++i) {
-    received.push_back(buff[i]);
-  }
-  return received;
-}
+std::string TcpClient::Receive() { return ::Receive(connection_); }
 
 bool TcpClient::Send(const std::string& message) {
-  // send number of bytes to send
-  char num_of_bytes[sizeof(int) + 1];
-  sprintf(num_of_bytes, "%d", message.size());
-  int b_sent = send(connection_, num_of_bytes, sizeof(int) + 1, 0);
-  if (b_sent < 0) {
-    throw std::ios_base::failure("cannot send");
-  }
-
-  // send message
-  b_sent = send(connection_, message.c_str(), message.size(), 0);
-  if (b_sent < 0) {
-    throw std::ios_base::failure("cannot send");
-  }
-
-  return b_sent == message.size();
+  return ::Send(connection_, message);
 }
