@@ -18,7 +18,7 @@ class TcpServer {
     friend TcpServer;
   };
 
-  TcpServer(int protocol, int port);
+  TcpServer(int protocol, int port, int max_queue_length = 1);
   ~TcpServer();
 
   std::list<Client>::iterator AcceptConnection();

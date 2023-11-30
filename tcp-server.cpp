@@ -11,7 +11,7 @@
 
 namespace TCP {
 
-TcpServer::TcpServer(int protocol, int port) {
+TcpServer::TcpServer(int protocol, int port, int max_queue_length) {
   listener_ = socket(AF_INET, SOCK_STREAM, protocol);
   if (listener_ < 0) {
     throw TcpException(TcpException::SocketCreation, errno);
@@ -26,7 +26,7 @@ TcpServer::TcpServer(int protocol, int port) {
     throw TcpException(TcpException::Binding, errno);
   }
 
-  if (listen(listener_, 1) < 0) {
+  if (listen(listener_, max_queue_length) < 0) {
     close(listener_);
     throw TcpException(TcpException::Listening, errno);
   }
