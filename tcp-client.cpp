@@ -10,8 +10,6 @@
 #include <list>
 #include <string>
 
-#include "basic-ops.hpp"
-
 TcpClient::TcpClient(int protocol, int port, const char* server_addr) {
   connection_ = socket(AF_INET, SOCK_STREAM, 0);
   if (connection_ < 0) {

@@ -3,6 +3,8 @@
 #include <list>
 #include <string>
 
+#include "basic-ops.hpp"
+
 class TcpServer {
  public:
   struct Client {

@@ -9,8 +9,6 @@
 #include <list>
 #include <string>
 
-#include "basic-ops.hpp"
-
 TcpServer::TcpServer(int protocol, int port) {
   listener_ = socket(AF_INET, SOCK_STREAM, protocol);
   if (listener_ < 0) {

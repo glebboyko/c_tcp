@@ -3,6 +3,8 @@
 #include <list>
 #include <string>
 
+#include "basic-ops.hpp"
+
 class TcpClient {
  public:
   TcpClient(int protocol, int port, const char* server_addr);
