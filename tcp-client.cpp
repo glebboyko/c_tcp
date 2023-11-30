@@ -18,7 +18,7 @@ TcpClient::TcpClient(int protocol, int port, const char* server_addr) {
 
   sockaddr_in addr = {.sin_family = AF_INET,
                       .sin_port = htons(port),
-                      .sin_addr = {htonl(inet_addr(server_addr))}};
+                      .sin_addr = {inet_addr(server_addr)}};
   if (connect(connection_, (sockaddr*)&addr, sizeof(addr)) < 0) {
     close(connection_);
     throw std::ios_base::failure("cannot connect");
