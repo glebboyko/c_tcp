@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sys/socket.h>
+
 #include <exception>
 #include <string>
 
@@ -8,6 +10,7 @@ class TcpException : public std::exception {
   enum ExceptionType {
     SocketCreation,
     Receiving,
+    ConnectionBreak,
     Sending,
 
     Binding,
@@ -17,7 +20,7 @@ class TcpException : public std::exception {
     Connection
   };
 
-  TcpException(ExceptionType type, int error);
+  TcpException(ExceptionType type, int error = 0);
 
   const char* what() const noexcept override;
   ExceptionType GetType() const noexcept;
@@ -28,3 +31,6 @@ class TcpException : public std::exception {
   int error_;
   std::string s_what_;
 };
+
+std::string Receive(int socket);
+bool Send(int socket, const std::string& message);
