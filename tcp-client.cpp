@@ -1,6 +1,6 @@
 #include "tcp-client.hpp"
 
-#include <fcntl.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -10,7 +10,7 @@
 #include <list>
 #include <string>
 
-TcpClient::TcpClient(int protocol, int port, unsigned int server_addr) {
+TcpClient::TcpClient(int protocol, int port, const char* server_addr) {
   connection_ = socket(AF_INET, SOCK_STREAM, 0);
   if (connection_ < 0) {
     throw std::ios_base::failure("cannot create socket");
@@ -18,7 +18,7 @@ TcpClient::TcpClient(int protocol, int port, unsigned int server_addr) {
 
   sockaddr_in addr = {.sin_family = AF_INET,
                       .sin_port = htons(port),
-                      .sin_addr = {htonl(server_addr)}};
+                      .sin_addr = {htonl(inet_addr(server_addr))}};
   if (connect(connection_, (sockaddr*)&addr, sizeof(addr)) < 0) {
     close(connection_);
     throw std::ios_base::failure("cannot connect");
