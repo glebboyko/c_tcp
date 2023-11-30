@@ -81,12 +81,18 @@ void Send(int socket, const std::string& message) {
   sprintf(num_of_bytes, "%d", message.size());
   int b_sent = send(socket, num_of_bytes, sizeof(int) + 1, 0);
   if (b_sent < 0) {
+    if (errno == ECONNRESET) {
+      throw TcpException(TcpException::ConnectionBreak);
+    }
     throw TcpException(TcpException::Sending, errno);
   }
 
   // send message
   b_sent = send(socket, message.c_str(), message.size(), 0);
   if (b_sent < 0) {
+    if (errno == ECONNRESET) {
+      throw TcpException(TcpException::ConnectionBreak);
+    }
     throw TcpException(TcpException::Sending, errno);
   }
 }
