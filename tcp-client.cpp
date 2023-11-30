@@ -15,8 +15,7 @@ namespace TCP {
 TcpClient::TcpClient(int protocol, int port, const char* server_addr) {
   connection_ = socket(AF_INET, SOCK_STREAM, 0);
   if (connection_ < 0) {
-    throw std::ios_base::failure("cannot create socket " +
-                                 std::to_string(errno));
+    throw TcpException(TcpException::SocketCreation, errno);
   }
 
   sockaddr_in addr = {.sin_family = AF_INET,
@@ -24,7 +23,7 @@ TcpClient::TcpClient(int protocol, int port, const char* server_addr) {
                       .sin_addr = {inet_addr(server_addr)}};
   if (connect(connection_, (sockaddr*)&addr, sizeof(addr)) < 0) {
     close(connection_);
-    throw std::ios_base::failure("cannot connect " + std::to_string(errno));
+    throw TcpException(TcpException::Connection, errno);
   }
 }
 
