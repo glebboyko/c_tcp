@@ -8,4 +8,4 @@ include_directories(.)
 
 
 #adding executables
-add_executable(c-tcp tests/client.cpp tcp-server.cpp tcp-server.hpp tcp-client.cpp tcp-client.hpp)
+add_executable(c-tcp tcp-server.cpp tcp-client.cpp basic-ops.cpp)
