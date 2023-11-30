@@ -69,7 +69,14 @@ std::string TcpServer::Receive(std::list<Client>::iterator client) {
 
 void TcpServer::Send(std::list<Client>::iterator client,
                      const std::string& message) {
-  TCP::Send(client->dp_, message);
+  try {
+    TCP::Send(client->dp_, message);
+  } catch (TcpException& tcp_exception) {
+    if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
+      CloseConnection(client);
+    }
+    throw tcp_exception;
+  }
 }
 
 }  // namespace TCP
