@@ -9,6 +9,8 @@
 #include <list>
 #include <string>
 
+namespace TCP {
+
 TcpServer::TcpServer(int protocol, int port) {
   listener_ = socket(AF_INET, SOCK_STREAM, protocol);
   if (listener_ < 0) {
@@ -69,3 +71,5 @@ void TcpServer::Send(std::list<Client>::iterator client,
                      const std::string& message) {
   ::Send(client->dp_, message);
 }
+
+}  // namespace TCP

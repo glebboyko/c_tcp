@@ -5,6 +5,8 @@
 #include <exception>
 #include <string>
 
+namespace TCP {
+
 class TcpException : public std::exception {
  public:
   enum ExceptionType {
@@ -34,3 +36,5 @@ class TcpException : public std::exception {
 
 std::string Receive(int socket);
 void Send(int socket, const std::string& message);
+
+}  // namespace TCP

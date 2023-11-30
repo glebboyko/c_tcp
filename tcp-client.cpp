@@ -10,6 +10,8 @@
 #include <list>
 #include <string>
 
+namespace TCP {
+
 TcpClient::TcpClient(int protocol, int port, const char* server_addr) {
   connection_ = socket(AF_INET, SOCK_STREAM, 0);
   if (connection_ < 0) {
@@ -33,3 +35,5 @@ std::string TcpClient::Receive() { return ::Receive(connection_); }
 void TcpClient::Send(const std::string& message) {
   ::Send(connection_, message);
 }
+
+}  // namespace TCP

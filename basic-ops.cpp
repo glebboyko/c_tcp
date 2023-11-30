@@ -1,5 +1,7 @@
 #include "basic-ops.hpp"
 
+namespace TCP {
+
 TcpException::TcpException(ExceptionType type, int error)
     : type_(type), error_(error) {
   switch (type_) {
@@ -88,3 +90,5 @@ void Send(int socket, const std::string& message) {
     throw TcpException(TcpException::Sending, errno);
   }
 }
+
+}  // namespace TCP

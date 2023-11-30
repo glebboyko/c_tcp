@@ -5,6 +5,8 @@
 
 #include "basic-ops.hpp"
 
+namespace TCP {
+
 class TcpServer {
  public:
   struct Client {
@@ -29,3 +31,5 @@ class TcpServer {
   int listener_;
   std::list<Client> clients_;
 };
+
+}  // namespace TCP
