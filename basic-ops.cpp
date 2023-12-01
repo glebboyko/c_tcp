@@ -41,12 +41,12 @@ TcpException::ExceptionType TcpException::GetType() const noexcept {
 }
 int TcpException::GetErrno() const noexcept { return error_; }
 
-std::string Receive(int socket) {
-  std::string received;
+const int kIntMaxDigitNum = 10;
 
-  char num_buff[sizeof(int) + 1];
+std::string Receive(int socket) {
+  char num_buff[kIntMaxDigitNum + 1];
   // receive number of bytes to receive
-  int b_recv = recv(socket, &num_buff, sizeof(int) + 1, 0);
+  int b_recv = recv(socket, &num_buff, kIntMaxDigitNum + 1, 0);
   if (b_recv == 0) {
     throw TcpException(TcpException::ConnectionBreak);
   }
@@ -68,18 +68,20 @@ std::string Receive(int socket) {
     throw TcpException(TcpException::Receiving, errno);
   }
 
-  for (int i = 0; i < b_recv; ++i) {
-    received.push_back(buff[i]);
-  }
+  std::string received = buff;
+
   delete[] buff;
   return received;
 }
 
 void Send(int socket, const std::string& message) {
   // send number of bytes to send
-  char num_of_bytes[sizeof(int) + 1];
-  sprintf(num_of_bytes, "%d", message.size());
-  int b_sent = send(socket, num_of_bytes, sizeof(int) + 1, 0);
+  char num_buff[kIntMaxDigitNum + 1];
+  for (int i = 0; i < kIntMaxDigitNum + 1; ++i) {
+    num_buff[i] = '\0';
+  }
+  sprintf(num_buff, "%d", message.size() + 1);
+  int b_sent = send(socket, num_buff, kIntMaxDigitNum + 1, 0);
   if (b_sent < 0) {
     if (errno == ECONNRESET) {
       throw TcpException(TcpException::ConnectionBreak);
@@ -88,7 +90,7 @@ void Send(int socket, const std::string& message) {
   }
 
   // send message
-  b_sent = send(socket, message.c_str(), message.size(), 0);
+  b_sent = send(socket, message.c_str(), message.size() + 1, 0);
   if (b_sent < 0) {
     if (errno == ECONNRESET) {
       throw TcpException(TcpException::ConnectionBreak);
