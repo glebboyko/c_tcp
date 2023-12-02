@@ -56,6 +56,17 @@ void TcpServer::CloseConnection(std::list<Client>::iterator client) {
   clients_.erase(client);
 }
 
+bool TcpServer::IsAvailable(std::list<Client>::iterator client) {
+  try {
+    return TCP::IsAvailable(client->dp_);
+  } catch (TcpException& tcp_exception) {
+    if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
+      CloseConnection(client);
+    }
+    throw tcp_exception;
+  }
+}
+
 std::string TcpServer::Receive(std::list<Client>::iterator client) {
   try {
     return TCP::Receive(client->dp_);

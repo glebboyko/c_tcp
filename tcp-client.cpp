@@ -29,6 +29,8 @@ TcpClient::TcpClient(int protocol, int port, const char* server_addr) {
 
 TcpClient::~TcpClient() { close(connection_); }
 
+bool TcpClient::IsAvailable() { return TCP::IsAvailable(connection_); }
+
 std::string TcpClient::Receive() { return TCP::Receive(connection_); }
 
 void TcpClient::Send(const std::string& message) {

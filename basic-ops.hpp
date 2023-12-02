@@ -19,7 +19,9 @@ class TcpException : public std::exception {
     Listening,
     Acceptance,
 
-    Connection
+    Connection,
+
+    Setting
   };
 
   TcpException(ExceptionType type, int error = 0);
@@ -34,6 +36,7 @@ class TcpException : public std::exception {
   std::string s_what_;
 };
 
+bool IsAvailable(int socket);
 std::string Receive(int socket);
 void Send(int socket, const std::string& message);
 

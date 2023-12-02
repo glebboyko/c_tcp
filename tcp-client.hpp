@@ -12,6 +12,7 @@ class TcpClient {
   TcpClient(int protocol, int port, const char* server_addr);
   ~TcpClient();
 
+  bool IsAvailable();
   std::string Receive();
   void Send(const std::string& message);
 
