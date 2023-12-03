@@ -39,7 +39,7 @@ class TcpException : public std::exception {
 
 bool IsAvailable(int socket);
 
-void ToArgs(std::stringstream& stream) {}
+void ToArgs(std::stringstream& stream);
 template <typename Head, typename... Tail>
 void ToArgs(std::stringstream& stream, Head& head, Tail&... tail) {
   stream >> head;
@@ -82,7 +82,7 @@ void Receive(int socket, Args&... args) {
   ToArgs(stream, args...);
 }
 
-void FromArgs(std::string& output) {}
+void FromArgs(std::string& output);
 template <typename Head, typename... Tail>
 void FromArgs(std::string& output, const Head& head, const Tail&... tail) {
   std::stringstream stream;

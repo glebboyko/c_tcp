@@ -83,4 +83,7 @@ bool IsAvailable(int socket) {
   throw TcpException(TcpException::Receiving, errno);
 }
 
+void ToArgs(std::stringstream& stream) {}
+void FromArgs(std::string& output) {}
+
 }  // namespace TCP
