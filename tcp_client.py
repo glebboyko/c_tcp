@@ -38,14 +38,14 @@ class Socket:
     def __del__(self):
         self.__socket.close()
 
-    def Send(self):
+    def Send(self, *args):
         data = ToStr(args)
         b_num = FillStr(str(len(data) + 1), kIntMaxDigitNum + 1).encode(encoding)
 
         self.__socket.sendall(b_num)
         self.__socket.sendall((data + '\0').encode(encoding))
 
-    def Receive(self, *args) -> list[str]:
+    def Receive(self) -> list[str]:
         str_num = str(self.__socket.recv(kIntMaxDigitNum + 1), encoding)
         size = GetNum(str_num)
 
