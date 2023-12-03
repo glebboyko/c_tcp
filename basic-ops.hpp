@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 
 #include <exception>
+#include <sstream>
 #include <string>
 
 namespace TCP {
@@ -44,6 +45,8 @@ void ToArgs(std::stringstream& stream, Head& head, Tail&... tail) {
   stream >> head;
   ToArgs(stream, tail...);
 }
+
+const int kIntMaxDigitNum = 10;
 
 template <typename... Args>
 void Receive(int socket, Args&... args) {
@@ -92,8 +95,6 @@ void FromArgs(std::string& output, const Head& head, const Tail&... tail) {
   }
   output += str_head;
 }
-
-const int kIntMaxDigitNum = 10;
 
 template <typename... Args>
 void Send(int socket, const Args&... args) {
