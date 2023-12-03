@@ -22,10 +22,11 @@ def GetNum(string: str) -> int:
 
 def ToStr(*args) -> str:
     union = ""
-    for arg in args:
+    for arg in args[0]:
         if len(union) != 0:
             union = union + " "
         union = union + str(arg)
+        print("arg: %s" % str(arg))
     return union
 
 
