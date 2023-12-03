@@ -68,9 +68,9 @@ bool TcpServer::IsAvailable(std::list<Client>::iterator client) {
 }
 
 template <typename... Args>
-void TcpServer::Receive(std::list<Client>::iterator client, Args&... args) {
+void TcpServer::Receive(std::list<Client>::iterator client, Args&... message) {
   try {
-    return TCP::Receive(client->dp_, args...);
+    return TCP::Receive(client->dp_, message...);
   } catch (TcpException& tcp_exception) {
     if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
       CloseConnection(client);
@@ -80,9 +80,10 @@ void TcpServer::Receive(std::list<Client>::iterator client, Args&... args) {
 }
 
 template <typename... Args>
-void TcpServer::Send(std::list<Client>::iterator client, const Args&... args) {
+void TcpServer::Send(std::list<Client>::iterator client,
+                     const Args&... message) {
   try {
-    TCP::Send(client->dp_, args...);
+    TCP::Send(client->dp_, message...);
   } catch (TcpException& tcp_exception) {
     if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
       CloseConnection(client);

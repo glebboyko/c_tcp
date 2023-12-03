@@ -37,8 +37,8 @@ void TcpClient::Receive(Args&... message) {
 }
 
 template <typename... Args>
-void TcpClient::Send(const Args&... args) {
-  TCP::Send(connection_, args...);
+void TcpClient::Send(const Args&... message) {
+  TCP::Send(connection_, message...);
 }
 
 }  // namespace TCP

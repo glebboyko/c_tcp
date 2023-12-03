@@ -27,10 +27,10 @@ class TcpServer {
   bool IsAvailable(std::list<Client>::iterator client);
 
   template <typename... Args>
-  void Receive(std::list<Client>::iterator client, Args&... args);
+  void Receive(std::list<Client>::iterator client, Args&... message);
 
   template <typename... Args>
-  void Send(std::list<Client>::iterator client, const Args&... args);
+  void Send(std::list<Client>::iterator client, const Args&... message);
 
  private:
   int listener_;
