@@ -25,8 +25,12 @@ class TcpServer {
   void CloseConnection(std::list<Client>::iterator client);
 
   bool IsAvailable(std::list<Client>::iterator client);
-  std::string Receive(std::list<Client>::iterator client);
-  void Send(std::list<Client>::iterator client, const std::string& message);
+
+  template <typename... Args>
+  void Receive(std::list<Client>::iterator client, Args&... args);
+
+  template <typename... Args>
+  void Send(std::list<Client>::iterator client, const Args&... args);
 
  private:
   int listener_;

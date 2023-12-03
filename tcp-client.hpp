@@ -13,8 +13,12 @@ class TcpClient {
   ~TcpClient();
 
   bool IsAvailable();
-  std::string Receive();
-  void Send(const std::string& message);
+
+  template <typename... Args>
+  void Receive(Args&... message);
+
+  template <typename... Args>
+  void Send(const Args&... message);
 
  private:
   int connection_;

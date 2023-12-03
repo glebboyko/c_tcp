@@ -37,7 +37,11 @@ class TcpException : public std::exception {
 };
 
 bool IsAvailable(int socket);
-std::string Receive(int socket);
-void Send(int socket, const std::string& message);
+
+template <typename... Args>
+void Receive(int socket, Args&... args);
+
+template <typename... Args>
+void Send(int socket, const Args&... args);
 
 }  // namespace TCP

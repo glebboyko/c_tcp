@@ -2,6 +2,8 @@
 
 #include <fcntl.h>
 
+#include <sstream>
+
 namespace TCP {
 
 TcpException::TcpException(ExceptionType type, int error)
@@ -83,7 +85,15 @@ bool IsAvailable(int socket) {
   throw TcpException(TcpException::Receiving, errno);
 }
 
-std::string Receive(int socket) {
+void ToArgs(std::stringstream& stream) {}
+template <typename Head, typename... Tail>
+void ToArgs(std::stringstream& stream, Head& head, Tail&... tail) {
+  stream >> head;
+  ToArgs(stream, tail...);
+}
+
+template <typename... Args>
+void Receive(int socket, Args&... args) {
   char num_buff[kIntMaxDigitNum + 1];
   // receive number of bytes to receive
   int b_recv = recv(socket, &num_buff, kIntMaxDigitNum + 1, 0);
@@ -108,19 +118,38 @@ std::string Receive(int socket) {
     throw TcpException(TcpException::Receiving, errno);
   }
 
-  std::string received = buff;
+  std::stringstream stream;
+  stream << buff;
 
   delete[] buff;
-  return received;
+
+  ToArgs(stream, args...);
 }
 
-void Send(int socket, const std::string& message) {
+void FromArgs(std::string& output) {}
+template <typename Head, typename... Tail>
+void FromArgs(std::string& output, const Head& head, const Tail&... tail) {
+  std::stringstream stream;
+  stream << head;
+  std::string str_head;
+  stream >> str_head;
+
+  if (!output.empty()) {
+    output.push_back(' ');
+  }
+  output += str_head;
+}
+
+template <typename... Args>
+void Send(int socket, const Args&... args) {
+  std::string input;
+  FromArgs(input, args...);
   // send number of bytes to send
   char num_buff[kIntMaxDigitNum + 1];
   for (int i = 0; i < kIntMaxDigitNum + 1; ++i) {
     num_buff[i] = '\0';
   }
-  sprintf(num_buff, "%d", message.size() + 1);
+  sprintf(num_buff, "%d", input.size() + 1);
   int b_sent = send(socket, num_buff, kIntMaxDigitNum + 1, 0);
   if (b_sent < 0) {
     if (errno == ECONNRESET) {
@@ -130,7 +159,7 @@ void Send(int socket, const std::string& message) {
   }
 
   // send message
-  b_sent = send(socket, message.c_str(), message.size() + 1, 0);
+  b_sent = send(socket, input.c_str(), input.size() + 1, 0);
   if (b_sent < 0) {
     if (errno == ECONNRESET) {
       throw TcpException(TcpException::ConnectionBreak);

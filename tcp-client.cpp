@@ -31,10 +31,14 @@ TcpClient::~TcpClient() { close(connection_); }
 
 bool TcpClient::IsAvailable() { return TCP::IsAvailable(connection_); }
 
-std::string TcpClient::Receive() { return TCP::Receive(connection_); }
+template <typename... Args>
+void TcpClient::Receive(Args&... message) {
+  return TCP::Receive(connection_, message...);
+}
 
-void TcpClient::Send(const std::string& message) {
-  TCP::Send(connection_, message);
+template <typename... Args>
+void TcpClient::Send(const Args&... args) {
+  TCP::Send(connection_, args...);
 }
 
 }  // namespace TCP
