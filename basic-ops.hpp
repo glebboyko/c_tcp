@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 
 #include <exception>
+#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -94,12 +95,15 @@ void FromArgs(std::string& output, const Head& head, const Tail&... tail) {
     output.push_back(' ');
   }
   output += str_head;
+
+  FromArgs(output, tail...);
 }
 
 template <typename... Args>
 void Send(int socket, const Args&... args) {
   std::string input;
   FromArgs(input, args...);
+
   // send number of bytes to send
   char num_buff[kIntMaxDigitNum + 1];
   for (int i = 0; i < kIntMaxDigitNum + 1; ++i) {
