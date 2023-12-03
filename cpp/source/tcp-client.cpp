@@ -1,4 +1,4 @@
-#include "tcp-client.hpp"
+#include "../tcp-client.hpp"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <list>
 #include <string>
 

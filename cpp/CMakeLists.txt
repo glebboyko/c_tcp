@@ -4,7 +4,7 @@ project(c-tcp)
 set(CMAKE_CXX_STANDARD 20)
 
 #including project files
-include_directories(.)
+include_directories(..)
 
 
 #adding executables
