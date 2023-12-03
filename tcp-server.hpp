@@ -27,10 +27,28 @@ class TcpServer {
   bool IsAvailable(std::list<Client>::iterator client);
 
   template <typename... Args>
-  void Receive(std::list<Client>::iterator client, Args&... message);
+  void Receive(std::list<Client>::iterator client, Args&... message) {
+    try {
+      return TCP::Receive(client->dp_, message...);
+    } catch (TcpException& tcp_exception) {
+      if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
+        CloseConnection(client);
+      }
+      throw tcp_exception;
+    }
+  }
 
   template <typename... Args>
-  void Send(std::list<Client>::iterator client, const Args&... message);
+  void Send(std::list<Client>::iterator client, const Args&... message) {
+    try {
+      TCP::Send(client->dp_, message...);
+    } catch (TcpException& tcp_exception) {
+      if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
+        CloseConnection(client);
+      }
+      throw tcp_exception;
+    }
+  }
 
  private:
   int listener_;

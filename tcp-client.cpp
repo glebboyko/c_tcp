@@ -31,14 +31,4 @@ TcpClient::~TcpClient() { close(connection_); }
 
 bool TcpClient::IsAvailable() { return TCP::IsAvailable(connection_); }
 
-template <typename... Args>
-void TcpClient::Receive(Args&... message) {
-  return TCP::Receive(connection_, message...);
-}
-
-template <typename... Args>
-void TcpClient::Send(const Args&... message) {
-  TCP::Send(connection_, message...);
-}
-
 }  // namespace TCP

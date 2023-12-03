@@ -15,10 +15,14 @@ class TcpClient {
   bool IsAvailable();
 
   template <typename... Args>
-  void Receive(Args&... message);
+  void Receive(Args&... message) {
+    return TCP::Receive(connection_, message...);
+  }
 
   template <typename... Args>
-  void Send(const Args&... message);
+  void Send(const Args&... message) {
+    TCP::Send(connection_, message...);
+  }
 
  private:
   int connection_;

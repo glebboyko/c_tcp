@@ -48,8 +48,6 @@ TcpException::ExceptionType TcpException::GetType() const noexcept {
 }
 int TcpException::GetErrno() const noexcept { return error_; }
 
-const int kIntMaxDigitNum = 10;
-
 bool IsAvailable(int socket) {
   int original_flags = fcntl(socket, F_GETFL, 0);
   if (original_flags < 0) {
@@ -83,89 +81,6 @@ bool IsAvailable(int socket) {
     return false;
   }
   throw TcpException(TcpException::Receiving, errno);
-}
-
-void ToArgs(std::stringstream& stream) {}
-template <typename Head, typename... Tail>
-void ToArgs(std::stringstream& stream, Head& head, Tail&... tail) {
-  stream >> head;
-  ToArgs(stream, tail...);
-}
-
-template <typename... Args>
-void Receive(int socket, Args&... args) {
-  char num_buff[kIntMaxDigitNum + 1];
-  // receive number of bytes to receive
-  int b_recv = recv(socket, &num_buff, kIntMaxDigitNum + 1, 0);
-  if (b_recv == 0) {
-    throw TcpException(TcpException::ConnectionBreak);
-  }
-  if (b_recv < 0) {
-    throw TcpException(TcpException::Receiving, errno);
-  }
-  int b_num;
-  sscanf(num_buff, "%d", &b_num);
-
-  // receive message
-  char* buff = new char[b_num];
-  b_recv = recv(socket, buff, b_num, 0);
-  if (b_recv == 0) {
-    delete[] buff;
-    throw TcpException(TcpException::ConnectionBreak);
-  }
-  if (b_recv < 0) {
-    delete[] buff;
-    throw TcpException(TcpException::Receiving, errno);
-  }
-
-  std::stringstream stream;
-  stream << buff;
-
-  delete[] buff;
-
-  ToArgs(stream, args...);
-}
-
-void FromArgs(std::string& output) {}
-template <typename Head, typename... Tail>
-void FromArgs(std::string& output, const Head& head, const Tail&... tail) {
-  std::stringstream stream;
-  stream << head;
-  std::string str_head;
-  stream >> str_head;
-
-  if (!output.empty()) {
-    output.push_back(' ');
-  }
-  output += str_head;
-}
-
-template <typename... Args>
-void Send(int socket, const Args&... args) {
-  std::string input;
-  FromArgs(input, args...);
-  // send number of bytes to send
-  char num_buff[kIntMaxDigitNum + 1];
-  for (int i = 0; i < kIntMaxDigitNum + 1; ++i) {
-    num_buff[i] = '\0';
-  }
-  sprintf(num_buff, "%d", input.size() + 1);
-  int b_sent = send(socket, num_buff, kIntMaxDigitNum + 1, 0);
-  if (b_sent < 0) {
-    if (errno == ECONNRESET) {
-      throw TcpException(TcpException::ConnectionBreak);
-    }
-    throw TcpException(TcpException::Sending, errno);
-  }
-
-  // send message
-  b_sent = send(socket, input.c_str(), input.size() + 1, 0);
-  if (b_sent < 0) {
-    if (errno == ECONNRESET) {
-      throw TcpException(TcpException::ConnectionBreak);
-    }
-    throw TcpException(TcpException::Sending, errno);
-  }
 }
 
 }  // namespace TCP

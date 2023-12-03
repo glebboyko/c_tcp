@@ -67,29 +67,4 @@ bool TcpServer::IsAvailable(std::list<Client>::iterator client) {
   }
 }
 
-template <typename... Args>
-void TcpServer::Receive(std::list<Client>::iterator client, Args&... message) {
-  try {
-    return TCP::Receive(client->dp_, message...);
-  } catch (TcpException& tcp_exception) {
-    if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
-      CloseConnection(client);
-    }
-    throw tcp_exception;
-  }
-}
-
-template <typename... Args>
-void TcpServer::Send(std::list<Client>::iterator client,
-                     const Args&... message) {
-  try {
-    TCP::Send(client->dp_, message...);
-  } catch (TcpException& tcp_exception) {
-    if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
-      CloseConnection(client);
-    }
-    throw tcp_exception;
-  }
-}
-
 }  // namespace TCP
