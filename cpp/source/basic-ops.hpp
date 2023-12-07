@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <string>
