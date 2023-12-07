@@ -18,14 +18,14 @@ class TcpClient {
   template <typename... Args>
   void Receive(Args&... message) {
     Logger(CClient, FReceive, LogSocket(connection_) + "Trying to receive data",
-           Info, logger_);
+           Info, logger_, this);
     return TCP::Receive(connection_, logger_, message...);
   }
 
   template <typename... Args>
   void Send(const Args&... message) {
-    Logger(CClient, FSend, LogSocket(connection_) + "Trying to receive data",
-           Info, logger_);
+    Logger(CClient, FSend, LogSocket(connection_) + "Trying to send data", Info,
+           logger_, this);
     TCP::Send(connection_, logger_, message...);
   }
 

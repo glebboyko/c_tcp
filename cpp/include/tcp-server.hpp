@@ -31,6 +31,9 @@ class TcpServer {
   template <typename... Args>
   void Receive(std::list<Client>::iterator client, Args&... message) {
     try {
+      Logger(CServer, FReceive,
+             LogSocket(client->dp_) + "Trying to receive data", Info, logger_,
+             this);
       return TCP::Receive(client->dp_, logger_, message...);
     } catch (TcpException& tcp_exception) {
       if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
@@ -43,6 +46,8 @@ class TcpServer {
   template <typename... Args>
   void Send(std::list<Client>::iterator client, const Args&... message) {
     try {
+      Logger(CServer, FSend, LogSocket(client->dp_) + "Trying to send data",
+             Info, logger_, this);
       TCP::Send(client->dp_, logger_, message...);
     } catch (TcpException& tcp_exception) {
       if (tcp_exception.GetType() == TcpException::ConnectionBreak) {

@@ -14,17 +14,18 @@ namespace TCP {
 TcpClient::TcpClient(int protocol, int port, const char* server_addr,
                      logging_foo logger)
     : logger_(logger) {
-  Logger(CClient, FConstructor, "Trying to create socket", Debug, logger_);
+  Logger(CClient, FConstructor, "Trying to create socket", Debug, logger_,
+         this);
   connection_ = socket(AF_INET, SOCK_STREAM, 0);
   if (connection_ < 0) {
     throw TcpException(TcpException::SocketCreation, errno);
   }
-  Logger(CClient, FConstructor, "Socket created", Debug, logger_);
+  Logger(CClient, FConstructor, "Socket created", Debug, logger_, this);
 
   Logger(CClient, FConstructor,
          "Trying to set connection to " + std::string(server_addr) + ":" +
              std::to_string(port),
-         Info, logger_);
+         Info, logger_, this);
   sockaddr_in addr = {.sin_family = AF_INET,
                       .sin_port = htons(port),
                       .sin_addr = {inet_addr(server_addr)}};
@@ -32,18 +33,20 @@ TcpClient::TcpClient(int protocol, int port, const char* server_addr,
     close(connection_);
     throw TcpException(TcpException::Connection, errno);
   }
-  Logger(CClient, FConstructor, "Connection set", Info, logger_);
+  Logger(CClient, FConstructor, LogSocket(connection_) + "Connection set", Info,
+         logger_, this);
 }
 
 TcpClient::~TcpClient() {
   close(connection_);
-  Logger(CClient, FDestructor, "Disconnected", Info, logger_);
+  Logger(CClient, FDestructor, LogSocket(connection_) + "Disconnected", Info,
+         logger_, this);
 }
 
 bool TcpClient::IsAvailable() {
   Logger(CClient, FIsAvailable,
          LogSocket(connection_) + "Trying to check if the data is available",
-         Info, logger_);
+         Info, logger_, this);
   return TCP::IsAvailable(connection_);
 }
 

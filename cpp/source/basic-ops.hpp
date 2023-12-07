@@ -28,7 +28,7 @@ enum LAction {
 };
 
 void Logger(LModule, LAction, const std::string&, MessagePriority,
-            logging_foo logger);
+            logging_foo logger, void* module_address = nullptr);
 
 std::string LogSocket(int socket);
 

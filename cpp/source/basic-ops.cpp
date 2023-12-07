@@ -10,7 +10,8 @@ void LoggerCap(const std::string& l_module, const std::string& l_action,
                const std::string& l_event, MessagePriority priority) {}
 
 void Logger(LModule l_module, LAction l_action, const std::string& event,
-            MessagePriority priority, logging_foo logger) {
+            MessagePriority priority, logging_foo logger,
+            void* module_address) {
   std::string s_module;
   switch (l_module) {
     case CServer:
@@ -27,6 +28,12 @@ void Logger(LModule l_module, LAction l_action, const std::string& event,
       break;
     default:
       s_module = "CANNOT RECOGNIZE";
+  }
+
+  if (module_address != nullptr) {
+    char address[64];
+    sprintf(address, " %p", module_address);
+    s_module += address;
   }
 
   std::string s_action;
