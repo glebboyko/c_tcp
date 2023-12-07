@@ -117,7 +117,7 @@ TcpException::TcpException(ExceptionType type, int error, bool message_leak)
 TcpException::TcpException(ExceptionType type, logging_foo logger, int error,
                            bool message_leak)
     : TcpException(type, error, message_leak) {
-  Logger(CException, FException, what(), Error, logger);
+  Logger(CException, FException, what(), Warning, logger);
 }
 
 const char* TcpException::what() const noexcept { return s_what_.c_str(); }
