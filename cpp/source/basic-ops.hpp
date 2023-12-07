@@ -125,7 +125,7 @@ void Receive(int socket, logging_foo logger, Args&... args) {
 
   ToArgs(stream, args...);
 
-  Logger(CExternFoo, FReceive, log_socket + "Message from received", Info,
+  Logger(CExternFoo, FReceive, log_socket + "Message received", Info,
          logger);
 }
 
