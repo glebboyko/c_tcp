@@ -73,8 +73,13 @@ std::string LogSocket(int socket) {
   return "( Socket " + std::to_string(socket) + " )\t";
 }
 
-TcpException::TcpException(ExceptionType type, int error)
+TcpException::TcpException(ExceptionType type, int error, bool message_leak)
     : type_(type), error_(error) {
+  if (message_leak) {
+    std::string mode = type_ == Receiving ? "received" : "sent";
+    s_what_ = "The message could not be " + mode + " received in full";
+  }
+
   switch (type_) {
     case SocketCreation:
       s_what_ = "socket creation ";
@@ -109,8 +114,9 @@ TcpException::TcpException(ExceptionType type, int error)
   }
 }
 
-TcpException::TcpException(ExceptionType type, logging_foo logger, int error)
-    : TcpException(type, error) {
+TcpException::TcpException(ExceptionType type, logging_foo logger, int error,
+                           bool message_leak)
+    : TcpException(type, error, message_leak) {
   Logger(CException, FException, what(), Error, logger);
 }
 

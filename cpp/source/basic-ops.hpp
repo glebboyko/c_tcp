@@ -11,7 +11,7 @@ namespace TCP {
 
 enum MessagePriority { Error = 0, Warning = 1, Info = 2, Debug = 3 };
 using logging_foo = std::function<void(const std::string&, const std::string&,
-                               const std::string&, MessagePriority)>;
+                                       const std::string&, MessagePriority)>;
 void LoggerCap(const std::string& l_module, const std::string& l_action,
                const std::string& l_event, MessagePriority priority);
 
@@ -49,8 +49,9 @@ class TcpException : public std::exception {
     Setting
   };
 
-  TcpException(ExceptionType type, int error = 0);
-  TcpException(ExceptionType type, logging_foo logger, int error = 0);
+  TcpException(ExceptionType type, int error = 0, bool message_leak = false);
+  TcpException(ExceptionType type, logging_foo logger, int error = 0,
+               bool message_leak = false);
 
   const char* what() const noexcept override;
   ExceptionType GetType() const noexcept;
@@ -86,10 +87,13 @@ void Receive(int socket, logging_foo logger, Args&... args) {
   // receive number of bytes to receive
   int b_recv = recv(socket, &num_buff, kIntMaxDigitNum + 1, 0);
   if (b_recv == 0) {
-    throw TcpException(TcpException::ConnectionBreak);
+    throw TcpException(TcpException::ConnectionBreak, logger);
   }
   if (b_recv < 0) {
-    throw TcpException(TcpException::Receiving, errno);
+    throw TcpException(TcpException::Receiving, logger, errno);
+  }
+  if (b_recv < kIntMaxDigitNum + 1) {
+    throw TcpException(TcpException::Receiving, logger, 0, true);
   }
 
   int b_num;
@@ -105,11 +109,14 @@ void Receive(int socket, logging_foo logger, Args&... args) {
   b_recv = recv(socket, buff, b_num, 0);
   if (b_recv == 0) {
     delete[] buff;
-    throw TcpException(TcpException::ConnectionBreak);
+    throw TcpException(TcpException::ConnectionBreak, logger);
   }
   if (b_recv < 0) {
     delete[] buff;
-    throw TcpException(TcpException::Receiving, errno);
+    throw TcpException(TcpException::Receiving, logger, errno);
+  }
+  if (b_recv < b_num) {
+    throw TcpException(TcpException::Receiving, logger, 0, true);
   }
   Logger(CExternFoo, FReceive,
          log_socket + "Received " + std::to_string(b_recv) + " bytes", Debug,
@@ -125,8 +132,7 @@ void Receive(int socket, logging_foo logger, Args&... args) {
 
   ToArgs(stream, args...);
 
-  Logger(CExternFoo, FReceive, log_socket + "Message received", Info,
-         logger);
+  Logger(CExternFoo, FReceive, log_socket + "Message received", Info, logger);
 }
 
 void FromArgs(std::string& output);
@@ -166,9 +172,12 @@ void Send(int socket, logging_foo logger, const Args&... args) {
   int b_sent = send(socket, num_buff, kIntMaxDigitNum + 1, 0);
   if (b_sent < 0) {
     if (errno == ECONNRESET) {
-      throw TcpException(TcpException::ConnectionBreak);
+      throw TcpException(TcpException::ConnectionBreak, logger);
     }
-    throw TcpException(TcpException::Sending, errno);
+    throw TcpException(TcpException::Sending, logger, errno);
+  }
+  if (b_sent < kIntMaxDigitNum + 1) {
+    throw TcpException(TcpException::Sending, logger, 0, true);
   }
   Logger(CExternFoo, FSend, log_socket + "Message length sent", Debug, logger);
 
@@ -178,9 +187,12 @@ void Send(int socket, logging_foo logger, const Args&... args) {
   b_sent = send(socket, input.c_str(), input.size() + 1, 0);
   if (b_sent < 0) {
     if (errno == ECONNRESET) {
-      throw TcpException(TcpException::ConnectionBreak);
+      throw TcpException(TcpException::ConnectionBreak, logger);
     }
-    throw TcpException(TcpException::Sending, errno);
+    throw TcpException(TcpException::Sending, logger, errno);
+  }
+  if (b_sent < input.size() + 1) {
+    throw TcpException(TcpException::Sending, logger, 0, true);
   }
   Logger(CExternFoo, FSend, log_socket + "Main message sent", Debug, logger);
 
