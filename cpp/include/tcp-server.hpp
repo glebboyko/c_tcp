@@ -31,7 +31,7 @@ class TcpServer {
   template <typename... Args>
   void Receive(std::list<Client>::iterator client, Args&... message) {
     try {
-      return TCP::Receive(client->dp_, message...);
+      return TCP::Receive(client->dp_, logger_, message...);
     } catch (TcpException& tcp_exception) {
       if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
         CloseConnection(client);
@@ -43,7 +43,7 @@ class TcpServer {
   template <typename... Args>
   void Send(std::list<Client>::iterator client, const Args&... message) {
     try {
-      TCP::Send(client->dp_, message...);
+      TCP::Send(client->dp_, logger_, message...);
     } catch (TcpException& tcp_exception) {
       if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
         CloseConnection(client);

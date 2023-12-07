@@ -129,11 +129,6 @@ void Receive(int socket, logging_foo logger, Args&... args) {
          logger);
 }
 
-template <typename... Args>
-void Receive(int socket, Args&... args) {
-  Receive(socket, LoggerCap, args...);
-}
-
 void FromArgs(std::string& output);
 template <typename Head, typename... Tail>
 void FromArgs(std::string& output, const Head& head, const Tail&... tail) {
@@ -190,11 +185,6 @@ void Send(int socket, logging_foo logger, const Args&... args) {
   Logger(CExternFoo, FSend, log_socket + "Main message sent", Debug, logger);
 
   Logger(CExternFoo, FSend, log_socket + "Message sent", Info, logger);
-}
-
-template <typename... Args>
-void Send(int socket, const Args&... args) {
-  Send(socket, LoggerCap, args...);
 }
 
 }  // namespace TCP
