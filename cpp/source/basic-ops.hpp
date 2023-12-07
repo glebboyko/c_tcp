@@ -10,10 +10,8 @@
 namespace TCP {
 
 enum MessagePriority { Error = 0, Warning = 1, Info = 2, Debug = 3 };
-using logging_foo = void (*)(const std::string& l_module,
-                             const std::string& l_action,
-                             const std::string& l_event,
-                             MessagePriority priority);
+using logging_foo = std::function<void(const std::string&, const std::string&,
+                               const std::string&, MessagePriority)>;
 void LoggerCap(const std::string& l_module, const std::string& l_action,
                const std::string& l_event, MessagePriority priority) {}
 
