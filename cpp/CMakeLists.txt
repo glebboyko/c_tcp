@@ -7,7 +7,7 @@ get_filename_component(CTCP_DIR_INCLUDE include ABSOLUTE DIRECTORY)
 set(CTCP_DIR_INCLUDE ${CTCP_DIR_INCLUDE} PARENT_SCOPE)
 
 #including project files
-include_directories(include source)
+include_directories(include)
 
 add_library(${PROJECT_NAME}
         STATIC
