@@ -3,7 +3,7 @@
 #include <list>
 #include <string>
 
-#include "source/basic-ops.hpp"
+#include "basic-ops.hpp"
 
 namespace TCP {
 
@@ -18,6 +18,8 @@ class TcpServer {
     friend TcpServer;
   };
 
+  TcpServer(int protocol, int port, logging_foo logger,
+            int max_queue_length = 1);
   TcpServer(int protocol, int port, int max_queue_length = 1);
   ~TcpServer();
 
@@ -53,6 +55,8 @@ class TcpServer {
  private:
   int listener_;
   std::list<Client> clients_;
+
+  logging_foo logger_;
 };
 
 }  // namespace TCP
