@@ -1,4 +1,6 @@
+from typing import List
 import socket
+
 
 kIntMaxDigitNum = 10
 encoding = 'utf-8'
@@ -46,7 +48,7 @@ class Socket:
         self.__socket.sendall(b_num)
         self.__socket.sendall((data + '\0').encode(encoding))
 
-    def Receive(self) -> list[str]:
+    def Receive(self) -> List[str]:
         str_num = str(self.__socket.recv(kIntMaxDigitNum + 1), encoding)
         size = GetNum(str_num)
 
