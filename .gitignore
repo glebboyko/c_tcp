@@ -2,3 +2,6 @@ cpp/cmake-build-debug/
 cpp/.idea/
 tests/
 .idea/
+
+.clang-tidy
+.clang-format
