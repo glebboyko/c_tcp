@@ -13,4 +13,4 @@ add_library(${PROJECT_NAME}
         STATIC
         source/tcp-client.cpp source/tcp-server.cpp
         source/basic-ops.cpp)
-add_library(c-tcp_lib ALIAS ${PROJECT_NAME})
+add_library(c_tcp_lib ALIAS ${PROJECT_NAME})
