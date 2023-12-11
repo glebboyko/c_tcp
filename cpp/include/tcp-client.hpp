@@ -22,14 +22,34 @@ class TcpClient {
   void Receive(Args&... message) {
     Logger(CClient, FReceive, LogSocket(connection_) + "Trying to receive data",
            Info, logger_, this);
-    return TCP::Receive(connection_, logger_, message...);
+    try {
+      return TCP::Receive(connection_, logger_, message...);
+    } catch (TcpException& exception) {
+      if (exception.GetType() == TcpException::ConnectionBreak) {
+        Logger(CClient, FReceive,
+               LogSocket(connection_) + "Connection broke. Trying to close",
+               Info, logger_, this);
+        CloseConnection();
+      }
+      throw exception;
+    }
   }
 
   template <typename... Args>
   void Send(const Args&... message) {
     Logger(CClient, FSend, LogSocket(connection_) + "Trying to send data", Info,
            logger_, this);
-    TCP::Send(connection_, logger_, message...);
+    try {
+      TCP::Send(connection_, logger_, message...);
+    } catch (TcpException& exception) {
+      if (exception.GetType() == TcpException::ConnectionBreak) {
+        Logger(CClient, FSend,
+               LogSocket(connection_) + "Connection broke. Trying to close",
+               Info, logger_, this);
+        CloseConnection();
+      }
+      throw exception;
+    }
   }
 
  private:
