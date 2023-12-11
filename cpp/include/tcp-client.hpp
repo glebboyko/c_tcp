@@ -13,6 +13,9 @@ class TcpClient {
             logging_foo logger = LoggerCap);
   ~TcpClient();
 
+  void CloseConnection() noexcept;
+  bool IsConnected() const noexcept;
+
   bool IsAvailable();
 
   template <typename... Args>

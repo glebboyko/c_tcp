@@ -38,10 +38,22 @@ TcpClient::TcpClient(int protocol, int port, const char* server_addr,
 }
 
 TcpClient::~TcpClient() {
-  close(connection_);
-  Logger(CClient, FDestructor, LogSocket(connection_) + "Disconnected", Info,
-         logger_, this);
+  if (connection_ != 0) {
+    close(connection_);
+    Logger(CClient, FDestructor, LogSocket(connection_) + "Disconnected", Info,
+           logger_, this);
+  } else {
+    Logger(CClient, FDestructor, "Already disconnected", Info, logger_, this);
+  }
 }
+
+void TcpClient::CloseConnection() noexcept {
+  close(connection_);
+  Logger(CClient, FCloseConnection, LogSocket(connection_) + "Disconnected",
+         Info, logger_, this);
+  connection_ = 0;
+}
+bool TcpClient::IsConnected() const noexcept { return connection_ != 0; }
 
 bool TcpClient::IsAvailable() {
   Logger(CClient, FIsAvailable,
