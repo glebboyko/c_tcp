@@ -26,6 +26,9 @@ class TcpServer {
   std::list<Client>::iterator AcceptConnection();
   void CloseConnection(std::list<Client>::iterator client);
 
+  void CloseListener() noexcept;
+  bool IsListenerOpen() const noexcept;
+
   bool IsAvailable(std::list<Client>::iterator client);
 
   template <typename... Args>

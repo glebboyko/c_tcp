@@ -78,6 +78,13 @@ void TcpServer::CloseConnection(std::list<Client>::iterator client) {
   clients_.erase(client);
 }
 
+void TcpServer::CloseListener() noexcept {
+  close(listener_);
+  Logger(CServer, FCloseListener, "Listener closed", Info, logger_, this);
+  listener_ = 0;
+}
+bool TcpServer::IsListenerOpen() const noexcept { return listener_ != 0; }
+
 bool TcpServer::IsAvailable(std::list<Client>::iterator client) {
   try {
     Logger(CServer, FIsAvailable,

@@ -22,6 +22,7 @@ enum LAction {
   FDestructor,
   FAcceptConnection,
   FCloseConnection,
+  FCloseListener,
   FIsAvailable,
   FReceive,
   FSend,

@@ -50,6 +50,9 @@ void Logger(LModule l_module, LAction l_action, const std::string& event,
     case FCloseConnection:
       s_action = "CONNECTION CLOSURE";
       break;
+    case FCloseListener:
+      s_action = "LISTENER CLOSURE";
+      break;
     case FIsAvailable:
       s_action = "CHECKING DATA EXISTENCE";
       break;
