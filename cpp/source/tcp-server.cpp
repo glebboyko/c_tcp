@@ -1,5 +1,6 @@
 #include "tcp-server.hpp"
 
+#include <errno.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -61,6 +62,9 @@ std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection() {
   int client = accept(listener_, NULL, NULL);
 
   if (client < 0) {
+    if (errno == ECONNABORTED) {
+      throw TcpException(TcpException::ConnectionBreak);
+    }
     throw TcpException(TcpException::Acceptance, errno);
   }
 
