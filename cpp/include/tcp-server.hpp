@@ -4,6 +4,7 @@
 #include <string>
 
 #include "../source/basic-ops.hpp"
+#include "tcp-supply.hpp"
 
 namespace TCP {
 

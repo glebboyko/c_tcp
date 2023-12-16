@@ -8,13 +8,12 @@
 #include <sstream>
 #include <string>
 
+#include "tcp-supply.hpp"
+
 namespace TCP {
 
-enum MessagePriority { Error = 0, Warning = 1, Info = 2, Debug = 3 };
-using logging_foo = std::function<void(const std::string&, const std::string&,
-                                       const std::string&, MessagePriority)>;
 void LoggerCap(const std::string& l_module, const std::string& l_action,
-               const std::string& l_event, MessagePriority priority);
+               const std::string& l_event, int priority);
 
 enum LModule { CServer, CClient, CExternFoo, CException };
 enum LAction {
@@ -29,7 +28,7 @@ enum LAction {
   FException
 };
 
-void Logger(LModule, LAction, const std::string&, MessagePriority,
+void Logger(LModule, LAction, const std::string&, int priority,
             logging_foo logger, void* module_address = nullptr);
 
 std::string LogSocket(int socket);

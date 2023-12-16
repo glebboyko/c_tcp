@@ -7,10 +7,10 @@
 namespace TCP {
 
 void LoggerCap(const std::string& l_module, const std::string& l_action,
-               const std::string& l_event, MessagePriority priority) {}
+               const std::string& l_event, int priority) {}
 
 void Logger(LModule l_module, LAction l_action, const std::string& event,
-            MessagePriority priority, logging_foo logger,
+            int priority, logging_foo logger,
             void* module_address) {
   std::string s_module;
   switch (l_module) {
