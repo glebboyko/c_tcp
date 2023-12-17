@@ -47,7 +47,9 @@ class TcpException : public std::exception {
 
     Connection,
 
-    Setting
+    Setting,
+
+    Multithreading
   };
 
   TcpException(ExceptionType type, int error = 0, bool message_leak = false);

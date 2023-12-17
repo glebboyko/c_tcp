@@ -81,39 +81,42 @@ TcpException::TcpException(ExceptionType type, int error, bool message_leak)
   if (message_leak) {
     std::string mode = type_ == Receiving ? "received" : "sent";
     s_what_ = "The message could not be " + mode + " received in full";
-  }
-
-  switch (type_) {
-    case SocketCreation:
-      s_what_ = "socket creation ";
-      break;
-    case Receiving:
-      s_what_ = "receiving ";
-      break;
-    case ConnectionBreak:
-      s_what_ = "connection break";
-      break;
-    case Sending:
-      s_what_ = "sending ";
-      break;
-    case Binding:
-      s_what_ = "binding ";
-      break;
-    case Listening:
-      s_what_ = "listening ";
-      break;
-    case Acceptance:
-      s_what_ = "acceptance ";
-      break;
-    case Connection:
-      s_what_ = "connection ";
-      break;
-    case Setting:
-      s_what_ = "setting ";
+  } else {
+    switch (type_) {
+      case SocketCreation:
+        s_what_ = "socket creation";
+        break;
+      case Receiving:
+        s_what_ = "receiving";
+        break;
+      case ConnectionBreak:
+        s_what_ = "connection break";
+        break;
+      case Sending:
+        s_what_ = "sending";
+        break;
+      case Binding:
+        s_what_ = "binding";
+        break;
+      case Listening:
+        s_what_ = "listening";
+        break;
+      case Acceptance:
+        s_what_ = "acceptance";
+        break;
+      case Connection:
+        s_what_ = "connection";
+        break;
+      case Setting:
+        s_what_ = "setting";
+        break;
+      case Multithreading:
+        s_what_ = "multithreading"
+    }
   }
 
   if (error_ != 0) {
-    s_what_ += std::to_string(error_);
+    s_what_ += " " + std::to_string(error_);
   }
 }
 

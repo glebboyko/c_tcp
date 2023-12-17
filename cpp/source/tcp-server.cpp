@@ -12,6 +12,9 @@
 
 namespace TCP {
 
+TcpServer::Client::Client(int descriptor) : dp_(descriptor) {}
+TcpServer::Client::Client(TCP::TcpServer::Client&& other) : Client(other.dp_) {}
+
 TcpServer::TcpServer(int protocol, int port, logging_foo logger,
                      int max_queue_length)
     : logger_(logger) {
@@ -48,8 +51,7 @@ TcpServer::TcpServer(int protocol, int port, int max_queue_length)
 TcpServer::~TcpServer() {
   close(listener_);
   while (!clients_.empty()) {
-    close(clients_.cbegin()->dp_);
-    clients_.erase(clients_.cbegin());
+    CloseConnection(clients_.begin());
   }
   Logger(CServer, FDestructor,
          "Stopped listening, disconnected from all clients", Info, logger_,
@@ -79,7 +81,9 @@ void TcpServer::CloseConnection(ClientConnection client) {
   Logger(CServer, FCloseConnection,
          LogSocket(client->dp_) + "Connection closed", Info, logger_, this);
 
-  clients_.erase(client);
+  if (client->using_socket_.try_lock()) {
+    clients_.erase(client);
+  }
 }
 
 void TcpServer::CloseListener() noexcept {
@@ -90,12 +94,21 @@ void TcpServer::CloseListener() noexcept {
 bool TcpServer::IsListenerOpen() const noexcept { return listener_ != 0; }
 
 bool TcpServer::IsAvailable(ClientConnection client) {
+  if (!client->using_socket_.try_lock()) {
+    Logger(CServer, FIsAvailable, "Function is blocked by another thread",
+           Warning, logger_, this);
+    throw TcpException(TcpException::Multithreading, logger_);
+  }
+
   try {
     Logger(CServer, FIsAvailable,
            LogSocket(client->dp_) + "Trying to check if the data is available",
            Info, logger_, this);
-    return TCP::IsAvailable(client->dp_);
+    bool res = TCP::IsAvailable(client->dp_);
+    client->using_socket_.unlock();
+    return res;
   } catch (TcpException& tcp_exception) {
+    client->using_socket_.unlock();
     if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
       CloseConnection(client);
     }

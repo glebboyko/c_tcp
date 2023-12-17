@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <mutex>
 #include <string>
 
 #include "../source/basic-ops.hpp"
@@ -11,11 +12,15 @@ namespace TCP {
 class TcpServer {
  public:
   struct Client {
+   public:
+    Client(Client&& other);
+
    private:
     Client() = default;
-    Client(int descriptor) : dp_(descriptor) {}
+    Client(int descriptor);
 
     int dp_;
+    std::mutex using_socket_;
     friend TcpServer;
   };
 
@@ -35,12 +40,20 @@ class TcpServer {
 
   template <typename... Args>
   void Receive(ClientConnection client, Args&... message) {
+    if (!client->using_socket_.try_lock()) {
+      Logger(CServer, FReceive, "Function is blocked by another thread",
+             Warning, logger_, this);
+      throw TcpException(TcpException::Multithreading, logger_);
+    }
+
     try {
       Logger(CServer, FReceive,
              LogSocket(client->dp_) + "Trying to receive data", Info, logger_,
              this);
-      return TCP::Receive(client->dp_, logger_, message...);
+      TCP::Receive(client->dp_, logger_, message...);
+      client->using_socket_.unlock();
     } catch (TcpException& tcp_exception) {
+      client->using_socket_.unlock();
       if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
         CloseConnection(client);
       }
@@ -50,11 +63,19 @@ class TcpServer {
 
   template <typename... Args>
   void Send(ClientConnection client, const Args&... message) {
+    if (!client->using_socket_.try_lock()) {
+      Logger(CServer, FSend, "Function is blocked by another thread",
+             Warning, logger_, this);
+      throw TcpException(TcpException::Multithreading, logger_);
+    }
+
     try {
       Logger(CServer, FSend, LogSocket(client->dp_) + "Trying to send data",
              Info, logger_, this);
       TCP::Send(client->dp_, logger_, message...);
+      client->using_socket_.unlock();
     } catch (TcpException& tcp_exception) {
+      client->using_socket_.unlock();
       if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
         CloseConnection(client);
       }
