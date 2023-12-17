@@ -24,16 +24,17 @@ class TcpServer {
   TcpServer(int protocol, int port, int max_queue_length = 1);
   ~TcpServer();
 
-  std::list<Client>::iterator AcceptConnection();
-  void CloseConnection(std::list<Client>::iterator client);
+  using ClientConnection = std::list<Client>::iterator;
+  ClientConnection AcceptConnection();
+  void CloseConnection(ClientConnection client);
 
   void CloseListener() noexcept;
   bool IsListenerOpen() const noexcept;
 
-  bool IsAvailable(std::list<Client>::iterator client);
+  bool IsAvailable(ClientConnection client);
 
   template <typename... Args>
-  void Receive(std::list<Client>::iterator client, Args&... message) {
+  void Receive(ClientConnection client, Args&... message) {
     try {
       Logger(CServer, FReceive,
              LogSocket(client->dp_) + "Trying to receive data", Info, logger_,
@@ -48,7 +49,7 @@ class TcpServer {
   }
 
   template <typename... Args>
-  void Send(std::list<Client>::iterator client, const Args&... message) {
+  void Send(ClientConnection client, const Args&... message) {
     try {
       Logger(CServer, FSend, LogSocket(client->dp_) + "Trying to send data",
              Info, logger_, this);

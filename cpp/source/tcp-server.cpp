@@ -74,7 +74,7 @@ std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection() {
   return clients_.begin();
 }
 
-void TcpServer::CloseConnection(std::list<Client>::iterator client) {
+void TcpServer::CloseConnection(ClientConnection client) {
   close(client->dp_);
   Logger(CServer, FCloseConnection,
          LogSocket(client->dp_) + "Connection closed", Info, logger_, this);
@@ -89,7 +89,7 @@ void TcpServer::CloseListener() noexcept {
 }
 bool TcpServer::IsListenerOpen() const noexcept { return listener_ != 0; }
 
-bool TcpServer::IsAvailable(std::list<Client>::iterator client) {
+bool TcpServer::IsAvailable(ClientConnection client) {
   try {
     Logger(CServer, FIsAvailable,
            LogSocket(client->dp_) + "Trying to check if the data is available",
