@@ -111,7 +111,7 @@ TcpException::TcpException(ExceptionType type, int error, bool message_leak)
         s_what_ = "setting";
         break;
       case Multithreading:
-        s_what_ = "multithreading"
+        s_what_ = "multithreading";
     }
   }
 
