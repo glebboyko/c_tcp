@@ -10,8 +10,7 @@ void LoggerCap(const std::string& l_module, const std::string& l_action,
                const std::string& l_event, int priority) {}
 
 void Logger(LModule l_module, LAction l_action, const std::string& event,
-            int priority, logging_foo logger,
-            void* module_address) {
+            int priority, logging_foo logger, void* module_address) {
   std::string s_module;
   switch (l_module) {
     case CServer:
@@ -43,6 +42,9 @@ void Logger(LModule l_module, LAction l_action, const std::string& event,
       break;
     case FMoveConstr:
       s_action = "MOVE CONSTRUCTOR";
+      break;
+    case FFromServerConstr:
+      s_action = "FROM SERVER CONSTRUCTOR";
       break;
     case FDestructor:
       s_action = "DESTRUCTOR";

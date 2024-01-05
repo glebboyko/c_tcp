@@ -8,6 +8,8 @@
 
 namespace TCP {
 
+class TcpServer;
+
 class TcpClient {
  public:
   TcpClient(int protocol, int port, const char* server_addr,
@@ -59,6 +61,10 @@ class TcpClient {
   int connection_;
 
   logging_foo logger_;
+
+  TcpClient(int socket, logging_foo logger);
+
+  friend TcpServer;
 };
 
 }  // namespace TCP

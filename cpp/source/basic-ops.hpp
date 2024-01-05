@@ -19,6 +19,7 @@ enum LModule { CServer, CClient, CExternFoo, CException };
 enum LAction {
   FConstructor,
   FMoveConstr,
+  FFromServerConstr,
   FDestructor,
   FAcceptConnection,
   FCloseConnection,

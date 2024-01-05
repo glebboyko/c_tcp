@@ -12,9 +12,6 @@
 
 namespace TCP {
 
-TcpServer::Client::Client(int descriptor) : dp_(descriptor) {}
-TcpServer::Client::Client(TCP::TcpServer::Client&& other) : Client(other.dp_) {}
-
 TcpServer::TcpServer(int protocol, int port, logging_foo logger,
                      int max_queue_length)
     : logger_(logger) {
@@ -49,16 +46,16 @@ TcpServer::TcpServer(int protocol, int port, int max_queue_length)
     : TcpServer(protocol, port, LoggerCap, max_queue_length) {}
 
 TcpServer::~TcpServer() {
-  close(listener_);
-  while (!clients_.empty()) {
-    CloseConnection(clients_.begin());
+  if (listener_ != 0) {
+    close(listener_);
+    Logger(CServer, FDestructor, "Stopped listening", Info, logger_, this);
+  } else {
+    Logger(CServer, FDestructor, "Listening has already been stopped", Info,
+           logger_, this);
   }
-  Logger(CServer, FDestructor,
-         "Stopped listening, disconnected from all clients", Info, logger_,
-         this);
 }
 
-std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection() {
+TcpClient TcpServer::AcceptConnection() {
   Logger(CServer, FAcceptConnection, "Trying to accept connection", Info,
          logger_, this);
   int client = accept(listener_, NULL, NULL);
@@ -70,20 +67,10 @@ std::list<TcpServer::Client>::iterator TcpServer::AcceptConnection() {
     throw TcpException(TcpException::Acceptance, errno);
   }
 
-  clients_.push_front(Client(client));
+
   Logger(CServer, FAcceptConnection, LogSocket(client) + "Connection accepted",
          Info, logger_, this);
-  return clients_.begin();
-}
-
-void TcpServer::CloseConnection(ClientConnection client) {
-  close(client->dp_);
-  Logger(CServer, FCloseConnection,
-         LogSocket(client->dp_) + "Connection closed", Info, logger_, this);
-
-  if (client->using_socket_.try_lock()) {
-    clients_.erase(client);
-  }
+  return TcpClient(client, logger_);
 }
 
 void TcpServer::CloseListener() noexcept {
@@ -92,28 +79,5 @@ void TcpServer::CloseListener() noexcept {
   listener_ = 0;
 }
 bool TcpServer::IsListenerOpen() const noexcept { return listener_ != 0; }
-
-bool TcpServer::IsAvailable(ClientConnection client) {
-  if (!client->using_socket_.try_lock()) {
-    Logger(CServer, FIsAvailable, "Function is blocked by another thread",
-           Warning, logger_, this);
-    throw TcpException(TcpException::Multithreading, logger_);
-  }
-
-  try {
-    Logger(CServer, FIsAvailable,
-           LogSocket(client->dp_) + "Trying to check if the data is available",
-           Info, logger_, this);
-    bool res = TCP::IsAvailable(client->dp_);
-    client->using_socket_.unlock();
-    return res;
-  } catch (TcpException& tcp_exception) {
-    client->using_socket_.unlock();
-    if (tcp_exception.GetType() == TcpException::ConnectionBreak) {
-      CloseConnection(client);
-    }
-    throw tcp_exception;
-  }
-}
 
 }  // namespace TCP
