@@ -37,13 +37,22 @@ TcpClient::TcpClient(int protocol, int port, const char* server_addr,
          logger_, this);
 }
 
+TcpClient::TcpClient(TCP::TcpClient&& other)
+    : connection_(other.connection_), logger_(other.logger_) {
+  Logger(CClient, FMoveConstr,
+         LogSocket(connection_) + "Moving from another client", Info, logger_,
+         this);
+  other.connection_ = 0;
+}
+
 TcpClient::~TcpClient() {
   if (connection_ != 0) {
     close(connection_);
     Logger(CClient, FDestructor, LogSocket(connection_) + "Disconnected", Info,
            logger_, this);
   } else {
-    Logger(CClient, FDestructor, "Already disconnected", Info, logger_, this);
+    Logger(CClient, FDestructor, "Already disconnected or moved", Info, logger_,
+           this);
   }
 }
 

@@ -18,6 +18,7 @@ void LoggerCap(const std::string& l_module, const std::string& l_action,
 enum LModule { CServer, CClient, CExternFoo, CException };
 enum LAction {
   FConstructor,
+  FMoveConstr,
   FDestructor,
   FAcceptConnection,
   FCloseConnection,

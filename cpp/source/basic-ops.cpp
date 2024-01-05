@@ -41,6 +41,9 @@ void Logger(LModule l_module, LAction l_action, const std::string& event,
     case FConstructor:
       s_action = "CONSTRUCTOR";
       break;
+    case FMoveConstr:
+      s_action = "MOVE CONSTRUCTOR";
+      break;
     case FDestructor:
       s_action = "DESTRUCTOR";
       break;

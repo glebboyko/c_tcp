@@ -12,6 +12,8 @@ class TcpClient {
  public:
   TcpClient(int protocol, int port, const char* server_addr,
             logging_foo logger = LoggerCap);
+  TcpClient(TcpClient&&);
+
   ~TcpClient();
 
   void CloseConnection() noexcept;
