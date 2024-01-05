@@ -45,6 +45,12 @@ TcpClient::TcpClient(TCP::TcpClient&& other)
   other.connection_ = 0;
 }
 
+TcpClient::TcpClient(int socket, TCP::logging_foo logger)
+    : connection_(socket), logger_(logger) {
+  Logger(CClient, FFromServerConstr, "Creating client from server", Info,
+         logger_, this);
+}
+
 TcpClient::~TcpClient() {
   if (connection_ != 0) {
     close(connection_);
