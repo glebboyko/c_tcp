@@ -12,7 +12,7 @@ namespace TCP {
 
 class TcpServer {
  public:
-  TcpServer(int port, logging_foo logger,
+  TcpServer(int port, logging_foo f_logger,
             int max_queue_length = 1);
   TcpServer(int port, int max_queue_length = 1);
   ~TcpServer();

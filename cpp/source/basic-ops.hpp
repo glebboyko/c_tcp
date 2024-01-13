@@ -15,24 +15,6 @@ namespace TCP {
 void LoggerCap(const std::string& l_module, const std::string& l_action,
                const std::string& l_event, int priority);
 
-enum LModule { CServer, CClient, CExternFoo, CException };
-enum LAction {
-  FConstructor,
-  FMoveConstr,
-  FFromServerConstr,
-  FDestructor,
-  FAcceptConnection,
-  FCloseConnection,
-  FCloseListener,
-  FIsAvailable,
-  FReceive,
-  FSend,
-  FException
-};
-
-void Logger(LModule, LAction, const std::string&, int priority,
-            logging_foo logger, void* module_address = nullptr);
-
 std::string LogSocket(int socket);
 
 class TcpException : public std::exception {
@@ -55,7 +37,7 @@ class TcpException : public std::exception {
   };
 
   TcpException(ExceptionType type, int error = 0, bool message_leak = false);
-  TcpException(ExceptionType type, logging_foo logger, int error = 0,
+  TcpException(ExceptionType type, logging_foo f_logger, int error = 0,
                bool message_leak = false);
 
   const char* what() const noexcept override;

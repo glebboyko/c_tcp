@@ -10,70 +10,74 @@
 #include <list>
 #include <string>
 
+#include "logger.hpp"
+
 namespace TCP {
 
-TcpServer::TcpServer(int port, logging_foo logger, int max_queue_length)
-    : logger_(logger) {
-  Logger(CServer, FConstructor, "Trying to create socket", Debug, logger_,
-         this);
+TcpServer::TcpServer(int port, logging_foo f_logger, int max_queue_length)
+    : logger_(f_logger) {
+  LServer logger(LServer::FConstructor, this, logger_);
+
+  logger.Log("Trying to create socket", Debug);
   listener_ = socket(AF_INET, SOCK_STREAM, 0);
   if (listener_ < 0) {
-    throw TcpException(TcpException::SocketCreation, errno);
+    throw TcpException(TcpException::SocketCreation, logger_, errno);
   }
-  Logger(CServer, FConstructor, "Socket created ", Debug, logger_, this);
+  logger.Log("Socket created ", Debug);
 
   sockaddr_in addr = {.sin_family = AF_INET,
                       .sin_port = htons(port),
                       .sin_addr = {htonl(INADDR_ANY)}};
 
-  Logger(CServer, FConstructor, "Trying to bind to " + std::to_string(port),
-         Info, logger_, this);
+  logger.Log("Trying to bind to " + std::to_string(port), Info);
   if (bind(listener_, (sockaddr*)&addr, sizeof(addr)) < 0) {
     close(listener_);
-    throw TcpException(TcpException::Binding, errno);
+    throw TcpException(TcpException::Binding, logger_, errno);
   }
-  Logger(CServer, FConstructor, "Bound", Info, logger_, this);
+  logger.Log("Bound", Info);
 
-  Logger(CServer, FConstructor, "Trying to listen", Info, logger_, this);
+  logger.Log("Trying to listen", Info);
   if (listen(listener_, max_queue_length) < 0) {
     close(listener_);
-    throw TcpException(TcpException::Listening, errno);
+    throw TcpException(TcpException::Listening, logger_, errno);
   }
-  Logger(CServer, FConstructor, "Listening", Info, logger_, this);
+  logger.Log("Listening", Info);
 }
 TcpServer::TcpServer(int port, int max_queue_length)
     : TcpServer(port, LoggerCap, max_queue_length) {}
 
 TcpServer::~TcpServer() {
+  LServer logger(LServer::FDestructor, this, logger_);
   if (listener_ != 0) {
     close(listener_);
-    Logger(CServer, FDestructor, "Stopped listening", Info, logger_, this);
+    logger.Log("Stopped listening", Info);
   } else {
-    Logger(CServer, FDestructor, "Listening has already been stopped", Info,
-           logger_, this);
+    logger.Log("Listening has already been stopped", Info);
   }
 }
 
 TcpClient TcpServer::AcceptConnection() {
-  Logger(CServer, FAcceptConnection, "Trying to accept connection", Info,
-         logger_, this);
+  LServer logger(LServer::FAccepter, this, logger_);
+
+  logger.Log("Trying to accept connection", Info);
   int client = accept(listener_, NULL, NULL);
 
   if (client < 0) {
     if (errno == ECONNABORTED) {
-      throw TcpException(TcpException::ConnectionBreak);
+      throw TcpException(TcpException::ConnectionBreak, logger_);
     }
-    throw TcpException(TcpException::Acceptance, errno);
+    throw TcpException(TcpException::Acceptance, logger_, errno);
   }
 
-  Logger(CServer, FAcceptConnection, LogSocket(client) + "Connection accepted",
-         Info, logger_, this);
+  logger.Log(LogSocket(client) + "Connection accepted", Info);
   return TcpClient(client, logger_);
 }
 
 void TcpServer::CloseListener() noexcept {
+  LServer logger(LServer::FCloseListener, this, logger_);
+
   close(listener_);
-  Logger(CServer, FCloseListener, "Listener closed", Info, logger_, this);
+  logger.Log("Listener closed", Info);
   listener_ = 0;
 }
 bool TcpServer::IsListenerOpen() const noexcept { return listener_ != 0; }
