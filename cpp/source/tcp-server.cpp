@@ -9,6 +9,7 @@
 #include <list>
 #include <string>
 
+#include "basic-ops.hpp"
 #include "logger.hpp"
 
 namespace TCP {
