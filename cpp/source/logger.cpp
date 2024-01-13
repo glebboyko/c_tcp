@@ -2,6 +2,9 @@
 
 namespace TCP {
 
+void LoggerCap(const std::string& l_module, const std::string& l_action,
+               const std::string& l_event, int priority) {}
+
 void Logger::Log(const std::string& event, int priority) {
   logger_(GetModule(), GetAction(), event, priority);
 }
