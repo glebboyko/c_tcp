@@ -9,6 +9,6 @@ include_directories(include)
 add_library(${PROJECT_NAME}
         STATIC
         source/tcp-client.cpp source/tcp-server.cpp
-        source/basic-ops.cpp)
+        source/basic-ops.cpp source/logger.cpp)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "lib_")
