@@ -11,8 +11,7 @@
 
 namespace TCP {
 
-TcpClient::TcpClient(int protocol, int port, const char* server_addr,
-                     logging_foo logger)
+TcpClient::TcpClient(const char* server_addr, int port, logging_foo logger)
     : logger_(logger) {
   Logger(CClient, FConstructor, "Trying to create socket", Debug, logger_,
          this);

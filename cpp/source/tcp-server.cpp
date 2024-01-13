@@ -12,12 +12,11 @@
 
 namespace TCP {
 
-TcpServer::TcpServer(int protocol, int port, logging_foo logger,
-                     int max_queue_length)
+TcpServer::TcpServer(int port, logging_foo logger, int max_queue_length)
     : logger_(logger) {
   Logger(CServer, FConstructor, "Trying to create socket", Debug, logger_,
          this);
-  listener_ = socket(AF_INET, SOCK_STREAM, protocol);
+  listener_ = socket(AF_INET, SOCK_STREAM, 0);
   if (listener_ < 0) {
     throw TcpException(TcpException::SocketCreation, errno);
   }
@@ -42,8 +41,8 @@ TcpServer::TcpServer(int protocol, int port, logging_foo logger,
   }
   Logger(CServer, FConstructor, "Listening", Info, logger_, this);
 }
-TcpServer::TcpServer(int protocol, int port, int max_queue_length)
-    : TcpServer(protocol, port, LoggerCap, max_queue_length) {}
+TcpServer::TcpServer(int port, int max_queue_length)
+    : TcpServer(port, LoggerCap, max_queue_length) {}
 
 TcpServer::~TcpServer() {
   if (listener_ != 0) {
@@ -66,7 +65,6 @@ TcpClient TcpServer::AcceptConnection() {
     }
     throw TcpException(TcpException::Acceptance, errno);
   }
-
 
   Logger(CServer, FAcceptConnection, LogSocket(client) + "Connection accepted",
          Info, logger_, this);

@@ -12,8 +12,7 @@ class TcpServer;
 
 class TcpClient {
  public:
-  TcpClient(int protocol, int port, const char* server_addr,
-            logging_foo logger = LoggerCap);
+  TcpClient(const char* server_addr, int port, logging_foo logger = LoggerCap);
   TcpClient(TcpClient&&);
 
   ~TcpClient();
