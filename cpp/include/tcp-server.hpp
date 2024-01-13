@@ -1,12 +1,6 @@
 #pragma once
 
-#include <list>
-#include <mutex>
-#include <string>
-
-#include "../source/basic-ops.hpp"
 #include "tcp-client.hpp"
-#include "tcp-supply.hpp"
 
 namespace TCP {
 
