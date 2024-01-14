@@ -91,7 +91,8 @@ std::string LogSocket(int socket) {
   return "( Socket " + std::to_string(socket) + " )\t";
 }
 
-TcpException::TcpException(ExceptionType type, int error, bool message_leak)
+TcpException::TcpException(ExceptionType type, logging_foo f_logger, int error,
+                           bool message_leak)
     : type_(type), error_(error) {
   if (message_leak) {
     std::string mode = type_ == Receiving ? "received" : "sent";
@@ -133,11 +134,7 @@ TcpException::TcpException(ExceptionType type, int error, bool message_leak)
   if (error_ != 0) {
     s_what_ += " " + std::to_string(error_);
   }
-}
 
-TcpException::TcpException(ExceptionType type, logging_foo f_logger, int error,
-                           bool message_leak)
-    : TcpException(type, error, message_leak) {
   LException(f_logger).Log(what(), Warning);
 }
 

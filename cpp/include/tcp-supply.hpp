@@ -34,7 +34,6 @@ class TcpException : public std::exception {
     Multithreading
   };
 
-  TcpException(ExceptionType type, int error = 0, bool message_leak = false);
   TcpException(ExceptionType type, logging_foo f_logger, int error = 0,
                bool message_leak = false);
 
