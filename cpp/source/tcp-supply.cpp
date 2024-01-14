@@ -1,4 +1,8 @@
-#include "logger.hpp"
+#include "tcp-supply.hpp"
+
+#include <fcntl.h>
+
+#include <sstream>
 
 namespace TCP {
 
@@ -82,5 +86,65 @@ std::string LClient::GetAction() const {
 LException::LException(TCP::logging_foo logger) { logger_ = logger; }
 std::string LException::GetModule() const { return "EXCEPTION"; }
 std::string LException::GetAction() const { return "EXCEPTION"; }
+
+std::string LogSocket(int socket) {
+  return "( Socket " + std::to_string(socket) + " )\t";
+}
+
+TcpException::TcpException(ExceptionType type, int error, bool message_leak)
+    : type_(type), error_(error) {
+  if (message_leak) {
+    std::string mode = type_ == Receiving ? "received" : "sent";
+    s_what_ = "The message could not be " + mode + " received in full";
+  } else {
+    switch (type_) {
+      case SocketCreation:
+        s_what_ = "socket creation";
+        break;
+      case Receiving:
+        s_what_ = "receiving";
+        break;
+      case ConnectionBreak:
+        s_what_ = "connection break";
+        break;
+      case Sending:
+        s_what_ = "sending";
+        break;
+      case Binding:
+        s_what_ = "binding";
+        break;
+      case Listening:
+        s_what_ = "listening";
+        break;
+      case Acceptance:
+        s_what_ = "acceptance";
+        break;
+      case Connection:
+        s_what_ = "connection";
+        break;
+      case Setting:
+        s_what_ = "setting";
+        break;
+      case Multithreading:
+        s_what_ = "multithreading";
+    }
+  }
+
+  if (error_ != 0) {
+    s_what_ += " " + std::to_string(error_);
+  }
+}
+
+TcpException::TcpException(ExceptionType type, logging_foo f_logger, int error,
+                           bool message_leak)
+    : TcpException(type, error, message_leak) {
+  LException(f_logger).Log(what(), Warning);
+}
+
+const char* TcpException::what() const noexcept { return s_what_.c_str(); }
+TcpException::ExceptionType TcpException::GetType() const noexcept {
+  return type_;
+}
+int TcpException::GetErrno() const noexcept { return error_; }
 
 }  // namespace TCP
