@@ -1,9 +1,12 @@
 #pragma once
 
+#define BLOCK_SIZE 1024
+#define MS_RECV_TIMEOUT 1000
+
 #include <list>
+#include <sstream>
 #include <string>
 
-#include "../source/basic-ops.hpp"
 #include "tcp-supply.hpp"
 
 namespace TCP {
@@ -12,56 +15,73 @@ class TcpServer;
 
 class TcpClient {
  public:
-  TcpClient(const char* server_addr, int port, logging_foo logger = LoggerCap);
+  TcpClient(const char* addr, int port, logging_foo f_logger);
   TcpClient(TcpClient&&);
-
   ~TcpClient();
 
-  void CloseConnection() noexcept;
-  bool IsConnected() const noexcept;
+  template <typename... Args>
+  void Send(const Args&... args) {
+    CleanTestQueries();
+
+    std::string input;
+    FromArgs(input, args...);
+    RawSend(input);
+  }
+
+  template <typename... Args>
+  bool Receive(int ms_timeout, Args&... args) {
+    auto recv_str = RawRecv(ms_timeout);
+    if (recv_str.empty()) {
+      return false;
+    }
+
+    std::stringstream stream;
+    stream << recv_str;
+    ToArgs(stream, args...);
+    return true;
+  }
 
   bool IsAvailable();
-
-  template <typename... Args>
-  void Receive(Args&... message) {
-    Logger(CClient, FReceive, LogSocket(connection_) + "Trying to receive data",
-           Info, logger_, this);
-    try {
-      return TCP::Receive(connection_, logger_, message...);
-    } catch (TcpException& exception) {
-      if (exception.GetType() == TcpException::ConnectionBreak) {
-        Logger(CClient, FReceive,
-               LogSocket(connection_) + "Connection broke. Trying to close",
-               Info, logger_, this);
-        CloseConnection();
-      }
-      throw exception;
-    }
-  }
-
-  template <typename... Args>
-  void Send(const Args&... message) {
-    Logger(CClient, FSend, LogSocket(connection_) + "Trying to send data", Info,
-           logger_, this);
-    try {
-      TCP::Send(connection_, logger_, message...);
-    } catch (TcpException& exception) {
-      if (exception.GetType() == TcpException::ConnectionBreak) {
-        Logger(CClient, FSend,
-               LogSocket(connection_) + "Connection broke. Trying to close",
-               Info, logger_, this);
-        CloseConnection();
-      }
-      throw exception;
-    }
-  }
+  void CloseConnection() noexcept;
+  bool IsConnected();
 
  private:
   int connection_;
 
   logging_foo logger_;
 
-  TcpClient(int socket, logging_foo logger);
+  TcpClient(int socket, logging_foo f_logger);
+
+  void RawSend(const std::string&);
+  std::string RawRecv(int ms_timeout);
+
+  void ToArgs(std::stringstream& stream);
+  template <typename Head, typename... Tail>
+  void ToArgs(std::stringstream& stream, Head& head, Tail&... tail) {
+    stream >> head;
+    if (stream.eof()) {
+      return;
+    }
+    ToArgs(stream, tail...);
+  }
+  void FromArgs(std::string& output);
+  template <typename Head, typename... Tail>
+  void FromArgs(std::string& output, const Head& head, const Tail&... tail) {
+    std::stringstream stream;
+    stream << head;
+    std::string str_head;
+    stream >> str_head;
+
+    if (!output.empty()) {
+      output.push_back(' ');
+    }
+    output += str_head;
+
+    FromArgs(output, tail...);
+  }
+
+  void CleanTestQueries();
+  bool IsDataExist(int ms_timeout);
 
   friend TcpServer;
 };
