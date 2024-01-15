@@ -96,7 +96,7 @@ TcpException::TcpException(ExceptionType type, logging_foo f_logger, int error,
     : type_(type), error_(error) {
   if (message_leak) {
     std::string mode = type_ == Receiving ? "received" : "sent";
-    s_what_ = "The message could not be " + mode + " received in full";
+    s_what_ = "The message could not be " + mode + " in full";
   } else {
     switch (type_) {
       case SocketCreation:
