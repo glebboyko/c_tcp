@@ -1,8 +1,11 @@
 #include "tcp-supply.hpp"
 
 #include <fcntl.h>
+#include <sys/select.h>
+#include <sys/socket.h>
 
 #include <sstream>
+#include <vector>
 
 namespace TCP {
 
@@ -143,5 +146,51 @@ TcpException::ExceptionType TcpException::GetType() const noexcept {
   return type_;
 }
 int TcpException::GetErrno() const noexcept { return error_; }
+
+std::optional<int> WaitForData(int dp, int ms_timeout, Logger& logger,
+                               logging_foo log_foo) {
+  fd_set fd_set_v;
+  FD_ZERO(&fd_set_v);
+  FD_SET(dp, &fd_set_v);
+
+  timeval timeout = {0, ms_timeout * 1'000};
+
+  logger.Log("Starting waiting for data", Debug);
+  auto time_start = std::chrono::system_clock::now();
+  int answ = select(1, &fd_set_v, nullptr, nullptr, &timeout);
+  auto time_stop = std::chrono::system_clock::now();
+  logger.Log("Stopped waiting", Debug);
+
+  if (answ < 0) {
+    throw TcpException(TcpException::IncomeChecking, log_foo, errno);
+  }
+
+  if (answ != 0) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(time_stop -
+                                                                 time_start)
+        .count();
+  }
+  return {};
+}
+
+ssize_t RawSend(int dp, std::string message, size_t length) noexcept {
+  while (message.size() < length) {
+    message.push_back('\0');
+  }
+  ssize_t answ = send(dp, message.c_str(), length, 0);
+  return answ;
+}
+std::string RawRecv(int dp, size_t length) noexcept {
+  std::vector<char> message(length);
+  ssize_t answ = recv(dp, message.data(), length, 0);
+
+  if (answ < 0) {
+    return "";
+  }
+
+  std::string result;
+  std::copy(message.begin(), message.begin() + answ, result.begin());
+  return result;
+}
 
 }  // namespace TCP

@@ -1,7 +1,9 @@
 #pragma once
 
+#include <chrono>
 #include <exception>
 #include <functional>
+#include <optional>
 #include <string>
 
 namespace TCP {
@@ -26,10 +28,14 @@ class TcpException : public std::exception {
     Binding,
     Listening,
     Acceptance,
+    NoData,
 
     Connection,
 
     Setting,
+    GettingFlags,
+    CleanTestQueries,
+    IncomeChecking,
 
     Multithreading
   };
@@ -60,7 +66,13 @@ class Logger {
 
 class LServer : public Logger {
  public:
-  enum LAction { FConstructor, FDestructor, FAccepter, FCloseListener };
+  enum LAction {
+    FConstructor,
+    FDestructor,
+    FAccepter,
+    FLoopAccepter,
+    FCloseListener
+  };
 
   LServer(LAction action, void* pointer, logging_foo logger);
 
@@ -76,10 +88,10 @@ class LClient : public Logger {
   enum LAction {
     FConstructor,
     FMoveConstructor,
+    FFromServerConstructor,
     FDestructor,
     FSend,
-    FBlockRecv,
-    FNonBlockRecv,
+    FRecv,
     FIsAvailable,
     FCloseConnection,
     FIsConnected,
@@ -107,4 +119,10 @@ class LException : public Logger {
   std::string GetAction() const override;
 };
 
+const int kULLMaxDigits = 20;
+
+std::optional<int> WaitForData(int dp, int ms_timeout, Logger& logger,
+                               logging_foo log_foo);
+ssize_t RawSend(int dp, std::string message, size_t length) noexcept;
+std::string RawRecv(int dp, size_t length) noexcept;
 }  // namespace TCP
