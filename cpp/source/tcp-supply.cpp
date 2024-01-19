@@ -152,7 +152,7 @@ std::optional<int> WaitForData(int dp, int ms_timeout, Logger& logger,
 
   logger.Log("Starting waiting for data", Debug);
   auto time_start = std::chrono::system_clock::now();
-  int answ = select(1, &fd_set_v, nullptr, nullptr, &timeout);
+  int answ = select(dp + 1, &fd_set_v, nullptr, nullptr, &timeout);
   auto time_stop = std::chrono::system_clock::now();
   logger.Log("Stopped waiting", Debug);
 
