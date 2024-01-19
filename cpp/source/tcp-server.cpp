@@ -159,8 +159,8 @@ void TcpServer::AcceptLoop() noexcept {
         if (RawSend(client, std::to_string(password), kULLMaxDigits + 1) ==
             kULLMaxDigits + 1) {
           logger.Log("Password sent successfully", Debug);
-          uncomplete_client_.erase(client_password);
-          uncomplete_client_.insert({client_password, client});
+          uncomplete_client_.erase(password);
+          uncomplete_client_.insert({password, client});
         } else {
           logger.Log(
               "Error occurred while sending password. Closing connection",
