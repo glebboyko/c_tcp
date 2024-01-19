@@ -263,7 +263,7 @@ void TcpClient::HeartBeat(TCP::TcpClient** this_pointer,
     }
     auto sending_time = std::chrono::milliseconds(std::stoll(recv_beat));
     auto receiving_time = curr_time.time_since_epoch() +
-                          std::chrono::microseconds(waiting.value());
+                          std::chrono::milliseconds(waiting.value());
 
     int ping = std::chrono::duration_cast<std::chrono::milliseconds>(
                    receiving_time - sending_time)
