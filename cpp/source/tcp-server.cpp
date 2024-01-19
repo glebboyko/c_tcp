@@ -176,7 +176,7 @@ void TcpServer::AcceptLoop() noexcept {
           logger.Log("Sent run signal. Locking mutex", Debug);
           accept_mutex_.lock();
           logger.Log("Mutex locked. Creating TcpClient", Debug);
-          accepted_.emplace(client_recv, client, logger_);
+          accepted_.emplace(TcpClient(client_recv, client, logger_));
           accept_mutex_.unlock();
           logger.Log("Mutex unlocked", Debug);
         } else {
