@@ -265,7 +265,7 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
     auto send_recv_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch() - recv_time);
     if (RawSend(socket, std::to_string(send_recv_diff.count()),
-                kULLMaxDigits + 1)) {
+                kULLMaxDigits + 1) != kULLMaxDigits + 1) {
       logger.Log("Error occurred while sending", Warning);
       this_mutex->lock();
       (**this_pointer).ms_ping_ = -1;
