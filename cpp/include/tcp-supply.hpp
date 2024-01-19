@@ -15,8 +15,6 @@ using logging_foo = std::function<void(const std::string&, const std::string&,
 void LoggerCap(const std::string& l_module, const std::string& l_action,
                const std::string& l_event, int priority);
 
-std::string LogSocket(int socket);
-
 class TcpException : public std::exception {
  public:
   enum ExceptionType {
@@ -32,9 +30,6 @@ class TcpException : public std::exception {
 
     Connection,
 
-    Setting,
-    GettingFlags,
-    CleanTestQueries,
     IncomeChecking,
 
     Multithreading
@@ -90,15 +85,12 @@ class LClient : public Logger {
     FMoveConstructor,
     FFromServerConstructor,
     FDestructor,
+    FHeartBeatLoop,
     FSend,
     FRecv,
     FIsAvailable,
-    FCloseConnection,
-    FIsConnected,
-    FSetFlags,
-    FRawSend,
-    FRawRecv,
-    FCleanTestQ
+    FStopClient,
+    FIsConnected
   };
 
   LClient(LAction action, void* pointer, logging_foo logger);

@@ -38,6 +38,8 @@ std::string LServer::GetAction() const {
       return "DESTRUCTOR";
     case FAccepter:
       return "ACCEPTER";
+    case FLoopAccepter:
+      return "ACCEPTER LOOP";
     case FCloseListener:
       return "LISTENER CLOSER";
     default:
@@ -59,28 +61,22 @@ std::string LClient::GetAction() const {
       return "CONSTRUCTOR";
     case FMoveConstructor:
       return "MOVE CONSTRUCTOR";
+    case FFromServerConstructor:
+      return "SERVER CONSTRUCTOR";
     case FDestructor:
       return "DESTRUCTOR";
+    case FHeartBeatLoop:
+      return "HEARTBEAT LOOP";
     case FSend:
       return "SENDER";
-    case FBlockRecv:
-      return "BLOCKING RECEIVER";
-    case FNonBlockRecv:
-      return "NONBLOCKING RECEIVER";
+    case FRecv:
+      return "RECEIVER";
     case FIsAvailable:
       return "AVAILABILITY CHECKER";
-    case FCloseConnection:
+    case FStopClient:
       return "CONNECTION CLOSER";
     case FIsConnected:
       return "CONNECTION CHECKER";
-    case FSetFlags:
-      return "FLAGS SETTER";
-    case FRawSend:
-      return "RAE SENDER";
-    case FRawRecv:
-      return "RAW RECEIVER";
-    case FCleanTestQ:
-      return "TEST QUERIES CLEANER";
     default:
       return "CANNOT RECOGNIZE ACTION";
   }
@@ -89,10 +85,6 @@ std::string LClient::GetAction() const {
 LException::LException(TCP::logging_foo logger) { logger_ = logger; }
 std::string LException::GetModule() const { return "EXCEPTION"; }
 std::string LException::GetAction() const { return "EXCEPTION"; }
-
-std::string LogSocket(int socket) {
-  return "( Socket " + std::to_string(socket) + " )\t";
-}
 
 TcpException::TcpException(ExceptionType type, logging_foo f_logger, int error,
                            bool message_leak)
@@ -123,11 +115,14 @@ TcpException::TcpException(ExceptionType type, logging_foo f_logger, int error,
       case Acceptance:
         s_what_ = "acceptance";
         break;
+      case NoData:
+        s_what_ = "no data";
+        break;
       case Connection:
         s_what_ = "connection";
         break;
-      case Setting:
-        s_what_ = "setting";
+      case IncomeChecking:
+        s_what_ = "income checking";
         break;
       case Multithreading:
         s_what_ = "multithreading";
@@ -189,7 +184,9 @@ std::string RawRecv(int dp, size_t length) noexcept {
   }
 
   std::string result;
-  std::copy(message.begin(), message.begin() + answ, result.begin());
+  for (ssize_t i = 0; i < answ; ++i) {
+    result.push_back(message[i]);
+  }
   return result;
 }
 
