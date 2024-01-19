@@ -88,8 +88,10 @@ class TcpClient {
 
   TcpClient(int heartbeat_socket, int main_socket, logging_foo f_logger);
 
-  static void HeartBeat(TcpClient** this_pointer,
+  static void HeartBeatClient(TcpClient** this_pointer,
                         std::mutex* this_mutex) noexcept;
+  static void HeartBeatServer(TcpClient** this_pointer,
+                              std::mutex* this_mutex) noexcept;
 
   void ToArgs(std::stringstream& stream);
   template <typename Head, typename... Tail>

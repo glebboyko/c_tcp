@@ -105,7 +105,7 @@ TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
     this_pointer_ = new TcpClient*(this);
     this_mutex_ = new std::mutex();
     heartbeat_thread_ =
-        std::thread(&TcpClient::HeartBeat, this_pointer_, this_mutex_);
+        std::thread(&TcpClient::HeartBeatClient, this_pointer_, this_mutex_);
   } catch (std::exception& exception) {
     delete this_pointer_;
     delete this_mutex_;
@@ -129,9 +129,9 @@ TcpClient::TcpClient(TCP::TcpClient&& other) noexcept
       heartbeat_thread_(std::move(other.heartbeat_thread_)),
       this_pointer_(other.this_pointer_),
       this_mutex_(other.this_mutex_),
+      is_active_(other.is_active_),
       logger_(other.logger_) {
-  if (!other.is_active_) {
-    is_active_ = false;
+  if (!is_active_) {
     return;
   }
   LClient logger(LClient::FMoveConstructor, this, logger_);
@@ -154,26 +154,13 @@ TcpClient::TcpClient(int heartbeat_socket, int main_socket,
   LClient logger(LClient::FFromServerConstructor, this, logger_);
   logger.Log("Building TCP-Client via move constructor", Debug);
 
-  logger.Log("Sending heart beat", Debug);
-  if (RawSend(heartbeat_socket_,
-              std::to_string(
-                  std::chrono::duration_cast<std::chrono::milliseconds>(
-                      std::chrono::system_clock::now().time_since_epoch())
-                      .count()),
-              kULLMaxDigits + 1) != kULLMaxDigits + 1) {
-    logger.Log("Error occurred while sending heart beat", Error);
-
-    close(heartbeat_socket_);
-    close(main_socket_);
-    throw TcpException(TcpException::Sending, logger_, errno);
-  }
-
-  logger.Log("Heart beat sent. Creating heartbeat thread", Debug);
+  logger.Log("Creating heartbeat thread", Debug);
   try {
     this_pointer_ = new TcpClient*(this);
     this_mutex_ = new std::mutex();
 
-    heartbeat_thread_ = std::thread(HeartBeat, this_pointer_, this_mutex_);
+    heartbeat_thread_ =
+        std::thread(HeartBeatServer, this_pointer_, this_mutex_);
   } catch (std::exception& exception) {
     logger.Log("Error while creating thread", Error);
     close(heartbeat_socket_);
@@ -212,8 +199,8 @@ void TcpClient::StopClient() noexcept {
   logger.Log("Client stopped", Info);
 }
 
-void TcpClient::HeartBeat(TCP::TcpClient** this_pointer,
-                          std::mutex* this_mutex) noexcept {
+void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
+                                std::mutex* this_mutex) noexcept {
   this_mutex->lock();
   logging_foo foo_log = (**this_pointer).logger_;
   LClient logger(LClient::FHeartBeatLoop, this_pointer, foo_log);
@@ -229,7 +216,7 @@ void TcpClient::HeartBeat(TCP::TcpClient** this_pointer,
 
   auto last_connection = std::chrono::system_clock::now().time_since_epoch();
   while (true) {
-    auto curr_time = std::chrono::system_clock::now();
+    auto curr_time = std::chrono::system_clock::now().time_since_epoch();
     auto waiting = WaitForData(socket, loop_timeout * 2, logger, foo_log);
 
     this_mutex->lock();
@@ -252,8 +239,8 @@ void TcpClient::HeartBeat(TCP::TcpClient** this_pointer,
       continue;
     }
 
-    auto recv_beat = RawRecv(socket, kULLMaxDigits + 1);
-    if (recv_beat.size() != kULLMaxDigits + 1) {
+    auto ping_str = RawRecv(socket, kULLMaxDigits + 1);
+    if (ping_str.size() != kULLMaxDigits + 1) {
       this_mutex->lock();
       (**this_pointer).ms_ping_ = -1;
       this_mutex->unlock();
@@ -261,23 +248,15 @@ void TcpClient::HeartBeat(TCP::TcpClient** this_pointer,
       TcpException(TcpException::Receiving, foo_log, errno);
       return;
     }
-    auto sending_time = std::chrono::milliseconds(std::stoll(recv_beat));
-    auto receiving_time = curr_time.time_since_epoch() +
-                          std::chrono::milliseconds(waiting.value());
-
-    int ping = std::chrono::duration_cast<std::chrono::milliseconds>(
-                   receiving_time - sending_time)
-                   .count();
     this_mutex->lock();
-    (**this_pointer).ms_ping_ = ping > 0 ? ping : 1;
+    (**this_pointer).ms_ping_ = std::stoi(ping_str);
     this_mutex->unlock();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(loop_timeout));
-    auto send_curr_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch());
-    auto send_answ = RawSend(socket, std::to_string(send_curr_time.count()),
-                             kULLMaxDigits + 1);
-    if (send_answ != kULLMaxDigits + 1) {
+    auto recv_time = curr_time + std::chrono::milliseconds(waiting.value());
+    auto send_recv_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch() - recv_time);
+    if (RawSend(socket, std::to_string(send_recv_diff.count()),
+                kULLMaxDigits + 1)) {
       this_mutex->lock();
       (**this_pointer).ms_ping_ = -1;
       this_mutex->unlock();
@@ -285,8 +264,74 @@ void TcpClient::HeartBeat(TCP::TcpClient** this_pointer,
       TcpException(TcpException::Sending, foo_log, errno);
       return;
     }
-
     last_connection = std::chrono::system_clock::now().time_since_epoch();
+  }
+}
+
+void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
+                                std::mutex* this_mutex) noexcept {
+  this_mutex->lock();
+  logging_foo foo_log = (**this_pointer).logger_;
+  LClient logger(LClient::FHeartBeatLoop, this_pointer, foo_log);
+
+  int socket = (**this_pointer).heartbeat_socket_;
+
+  int loop_timeout = (**this_pointer).kLoopMsTimeout;
+  int no_answ_timeout = (**this_pointer).kNoAnswMsTimeout;
+
+  this_mutex->unlock();
+
+  logger.Log("Starting loop", Debug);
+
+  while (true) {
+    this_mutex->lock();
+    bool term_flag = (**this_pointer).is_active_;
+    int cached_ping = (**this_pointer).ms_ping_;
+    this_mutex->unlock();
+    if (!term_flag) {
+      return;
+    }
+
+    auto send_time = std::chrono::system_clock::now().time_since_epoch();
+    if (RawSend(socket, std::to_string(cached_ping), kULLMaxDigits + 1) !=
+        kULLMaxDigits + 1) {
+      this_mutex->lock();
+      (**this_pointer).ms_ping_ = -1;
+      this_mutex->unlock();
+      return;
+    }
+
+    auto waiting =
+        WaitForData(socket, loop_timeout + no_answ_timeout, logger, foo_log);
+    auto recv_time = std::chrono::system_clock::now().time_since_epoch();
+
+    if (!waiting.has_value()) {
+      this_mutex->lock();
+      (**this_pointer).ms_ping_ = -1;
+      this_mutex->unlock();
+      return;
+    }
+
+    auto delay_str = RawRecv(socket, kULLMaxDigits + 1);
+    if (delay_str.size() != kULLMaxDigits + 1) {
+      this_mutex->lock();
+      (**this_pointer).ms_ping_ = -1;
+      this_mutex->unlock();
+
+      TcpException(TcpException::Receiving, foo_log, errno);
+      return;
+    }
+
+    auto curr_ping = std::chrono::duration_cast<std::chrono::milliseconds>(
+        recv_time - send_time -
+        std::chrono::milliseconds(std::stoll(delay_str)));
+    curr_ping /= 2;
+
+    this_mutex->lock();
+    (**this_pointer).ms_ping_ = curr_ping.count();
+    this_mutex->unlock();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(loop_timeout));
   }
 }
 
