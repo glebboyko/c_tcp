@@ -216,8 +216,10 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
 
   auto last_connection = std::chrono::system_clock::now().time_since_epoch();
   while (true) {
+    logger.Log("Starting waiting for ping", Debug);
     auto curr_time = std::chrono::system_clock::now().time_since_epoch();
     auto waiting = WaitForData(socket, loop_timeout * 2, logger, foo_log);
+    logger.Log("Checking term flag", Debug);
 
     this_mutex->lock();
     bool term_flag = (**this_pointer).is_active_;
@@ -227,20 +229,25 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
     }
 
     if (!waiting.has_value()) {
+      logger.Log("Ping is not available", Debug);
       if (std::chrono::duration_cast<std::chrono::milliseconds>(
               std::chrono::system_clock::now().time_since_epoch() -
               last_connection)
               .count() > no_answ_timeout) {
+        logger.Log("Connection timeout. Disconnecting", Info);
         this_mutex->lock();
         (**this_pointer).ms_ping_ = -1;
         this_mutex->unlock();
         return;
       }
+      logger.Log("Connection is not timeout", Debug);
       continue;
     }
 
+    logger.Log("Ping is available. Receiving", Debug);
     auto ping_str = RawRecv(socket, kULLMaxDigits + 1);
     if (ping_str.size() != kULLMaxDigits + 1) {
+      logger.Log("Error occurred while receiving", Warning);
       this_mutex->lock();
       (**this_pointer).ms_ping_ = -1;
       this_mutex->unlock();
@@ -248,15 +255,18 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
       TcpException(TcpException::Receiving, foo_log, errno);
       return;
     }
+    logger.Log("Ping received. Setting", Debug);
     this_mutex->lock();
     (**this_pointer).ms_ping_ = std::stoi(ping_str);
     this_mutex->unlock();
 
+    logger.Log("Sending delay", Debug);
     auto recv_time = curr_time + std::chrono::milliseconds(waiting.value());
     auto send_recv_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch() - recv_time);
     if (RawSend(socket, std::to_string(send_recv_diff.count()),
                 kULLMaxDigits + 1)) {
+      logger.Log("Error occurred while sending", Warning);
       this_mutex->lock();
       (**this_pointer).ms_ping_ = -1;
       this_mutex->unlock();
@@ -265,6 +275,7 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
       return;
     }
     last_connection = std::chrono::system_clock::now().time_since_epoch();
+    logger.Log("Sending is successful", Debug);
   }
 }
 
