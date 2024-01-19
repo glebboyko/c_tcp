@@ -4,8 +4,13 @@
 #define MS_RECV_TIMEOUT 1000
 
 #include <list>
+#include <mutex>
+#include <optional>
+#include <queue>
+#include <semaphore>
 #include <sstream>
 #include <string>
+#include <thread>
 
 #include "tcp-supply.hpp"
 
@@ -16,44 +21,75 @@ class TcpServer;
 class TcpClient {
  public:
   TcpClient(const char* addr, int port, logging_foo f_logger);
-  TcpClient(TcpClient&&);
+  TcpClient(TcpClient&&) noexcept;
   ~TcpClient();
 
   template <typename... Args>
   void Send(const Args&... args) {
-    CleanTestQueries();
+    LClient logger(LClient::FSend, this, logger_);
+    logger.Log("Starting sending method", Debug);
 
+    logger.Log("Getting string from args", Debug);
     std::string input;
     FromArgs(input, args...);
-    RawSend(input);
+    logger.Log("Sending message", Debug);
+    StrSend(input, logger);
+    logger.Log("Message sent", Info);
   }
 
   template <typename... Args>
   bool Receive(int ms_timeout, Args&... args) {
-    auto recv_str = RawRecv(ms_timeout);
+    LClient logger(LClient::FRecv, this, logger_);
+    logger.Log("Starting receiving method", Debug);
+
+    logger.Log("Receiving string", Debug);
+    auto recv_str = StrRecv(ms_timeout, logger);
+    logger.Log(
+        "Method returned string of size " + std::to_string(recv_str.size()),
+        Debug);
     if (recv_str.empty()) {
       return false;
     }
 
+    logger.Log("Setting args from string", Debug);
     std::stringstream stream;
     stream << recv_str;
     ToArgs(stream, args...);
+    logger.Log("Message received", Info);
     return true;
   }
 
+  std::string StrRecv(int ms_timeout, Logger& logger);
+  void StrSend(const std::string& message, Logger& logger);
+
+  void StopClient() noexcept;
   bool IsAvailable();
-  void CloseConnection() noexcept;
-  bool IsConnected();
+  bool IsConnected() noexcept;
+
+  int GetPing();
 
  private:
-  int connection_;
+  static const int kLoopMsTimeout = 100;
+  static const int kNoAnswMsTimeout = 1'000;
+
+  int main_socket_;
+  int heartbeat_socket_;
+
+  std::thread heartbeat_thread_;
+
+  TcpClient** this_pointer_ = nullptr;
+  std::mutex* this_mutex_ = nullptr;
+
+  bool is_active_ = true;
+
+  int ms_ping_ = 0;
 
   logging_foo logger_;
 
-  TcpClient(int socket, logging_foo f_logger);
+  TcpClient(int heartbeat_socket, int main_socket, logging_foo f_logger);
 
-  void RawSend(const std::string&);
-  std::string RawRecv(int ms_timeout);
+  static void HeartBeat(TcpClient** this_pointer,
+                        std::mutex* this_mutex) noexcept;
 
   void ToArgs(std::stringstream& stream);
   template <typename Head, typename... Tail>
@@ -79,9 +115,6 @@ class TcpClient {
 
     FromArgs(output, tail...);
   }
-
-  void CleanTestQueries();
-  bool IsDataExist(int ms_timeout);
 
   friend TcpServer;
 };
