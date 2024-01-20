@@ -152,7 +152,7 @@ std::optional<int> WaitForData(int dp, int ms_timeout, Logger& logger,
   FD_ZERO(&fd_set_v);
   FD_SET(dp, &fd_set_v);
 
-  timeval timeout = {0, ms_timeout * 1'000};
+  timeval timeout = {ms_timeout / 1'000, (ms_timeout % 1'000) * 1'000};
 
   logger.Log("Starting waiting for data", Debug);
   auto time_start = std::chrono::system_clock::now();
