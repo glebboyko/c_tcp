@@ -39,7 +39,7 @@ TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
     throw TcpException(TcpException::Sending, logger_, errno);
   }
   logger.Log("Waiting for password", Debug);
-  if (!WaitForData(heartbeat_socket_, kLoopMsTimeout, logger, logger_)
+  if (!WaitForData(heartbeat_socket_, kNoAnswMsTimeout, logger, logger_)
            .has_value()) {
     logger.Log("Timeout", Error);
     close(heartbeat_socket_);
@@ -80,7 +80,8 @@ TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
   }
 
   logger.Log("Waiting for signal", Debug);
-  if (!WaitForData(main_socket_, kLoopMsTimeout, logger, logger_).has_value()) {
+  if (!WaitForData(main_socket_, kNoAnswMsTimeout, logger, logger_)
+           .has_value()) {
     logger.Log("Timeout", Error);
     close(heartbeat_socket_);
     close(main_socket_);
@@ -207,9 +208,6 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
 
   int socket = (**this_pointer).heartbeat_socket_;
 
-  int loop_timeout = (**this_pointer).kLoopMsTimeout;
-  int no_answ_timeout = (**this_pointer).kNoAnswMsTimeout;
-
   this_mutex->unlock();
 
   logger.Log("Starting loop", Debug);
@@ -218,7 +216,7 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
   while (true) {
     logger.Log("Starting waiting for ping", Debug);
     auto curr_time = std::chrono::system_clock::now().time_since_epoch();
-    auto waiting = WaitForData(socket, loop_timeout * 2, logger, foo_log);
+    auto waiting = WaitForData(socket, kLoopMsTimeout * 2, logger, foo_log);
     logger.Log("Checking term flag", Debug);
 
     this_mutex->lock();
@@ -233,7 +231,7 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
       if (std::chrono::duration_cast<std::chrono::milliseconds>(
               std::chrono::system_clock::now().time_since_epoch() -
               last_connection)
-              .count() > no_answ_timeout) {
+              .count() > kNoAnswMsTimeout) {
         logger.Log("Connection timeout. Disconnecting", Info);
         this_mutex->lock();
         (**this_pointer).ms_ping_ = -1;
@@ -287,9 +285,6 @@ void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
 
   int socket = (**this_pointer).heartbeat_socket_;
 
-  int loop_timeout = (**this_pointer).kLoopMsTimeout;
-  int no_answ_timeout = (**this_pointer).kNoAnswMsTimeout;
-
   this_mutex->unlock();
 
   logger.Log("Starting loop", Debug);
@@ -313,7 +308,7 @@ void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
     }
 
     auto waiting =
-        WaitForData(socket, loop_timeout + no_answ_timeout, logger, foo_log);
+        WaitForData(socket, kLoopMsTimeout + kNoAnswMsTimeout, logger, foo_log);
     auto recv_time = std::chrono::system_clock::now().time_since_epoch();
 
     if (!waiting.has_value()) {
@@ -342,7 +337,7 @@ void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
     (**this_pointer).ms_ping_ = curr_ping.count();
     this_mutex->unlock();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(loop_timeout));
+    std::this_thread::sleep_for(std::chrono::milliseconds(kLoopMsTimeout));
   }
 }
 

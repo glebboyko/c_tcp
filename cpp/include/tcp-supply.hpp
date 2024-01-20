@@ -112,6 +112,8 @@ class LException : public Logger {
 };
 
 const int kULLMaxDigits = 20;
+const int kLoopMsTimeout = 100;
+const int kNoAnswMsTimeout = 1'000;
 
 std::optional<int> WaitForData(int dp, int ms_timeout, Logger& logger,
                                logging_foo log_foo);

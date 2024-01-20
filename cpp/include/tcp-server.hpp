@@ -23,7 +23,6 @@ class TcpServer {
 
  private:
   static const int kMaxClientLength = 1024;
-  static const int kLoopMsTimeout = 100;
 
   int listener_;
   bool is_active_ = true;

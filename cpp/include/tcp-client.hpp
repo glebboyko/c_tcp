@@ -69,9 +69,6 @@ class TcpClient {
   int GetPing();
 
  private:
-  static const int kLoopMsTimeout = 100;
-  static const int kNoAnswMsTimeout = 1'000;
-
   int main_socket_;
   int heartbeat_socket_;
 

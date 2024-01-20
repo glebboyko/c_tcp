@@ -135,7 +135,7 @@ void TcpServer::AcceptLoop() noexcept {
       logger.Log("Connection accepted", Debug);
 
       logger.Log("Waiting for client to send password", Debug);
-      if (!WaitForData(client, kLoopMsTimeout, logger, logger_).has_value()) {
+      if (!WaitForData(client, kNoAnswMsTimeout, logger, logger_).has_value()) {
         logger.Log("Waiting timeout. Sending term signal", Warning);
         RawSend(client, "0", kULLMaxDigits + 1);
         continue;
