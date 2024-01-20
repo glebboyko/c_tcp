@@ -89,6 +89,10 @@ std::string LException::GetAction() const { return "EXCEPTION"; }
 TcpException::TcpException(ExceptionType type, logging_foo f_logger, int error,
                            bool message_leak)
     : type_(type), error_(error) {
+  if (error == ECONNRESET) {
+    type_ = ConnectionBreak;
+    error_ = 0;
+  }
   if (message_leak) {
     std::string mode = type_ == Receiving ? "received" : "sent";
     s_what_ = "The message could not be " + mode + " in full";
