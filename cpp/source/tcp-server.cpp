@@ -48,7 +48,6 @@ TcpServer::TcpServer(int port, logging_foo f_logger)
       "Server on port " + std::to_string(port) + " successfully launcher",
       Info);
 }
-TcpServer::TcpServer(int port) : TcpServer(port, LoggerCap) {}
 
 TcpServer::~TcpServer() {
   LServer logger(LServer::FDestructor, this, logger_);

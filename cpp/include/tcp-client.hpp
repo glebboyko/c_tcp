@@ -20,7 +20,7 @@ class TcpServer;
 
 class TcpClient {
  public:
-  TcpClient(const char* addr, int port, logging_foo f_logger);
+  TcpClient(const char* addr, int port, logging_foo f_logger = LoggerCap);
   TcpClient(TcpClient&&) noexcept;
   ~TcpClient();
 

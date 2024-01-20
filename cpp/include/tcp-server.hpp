@@ -12,8 +12,7 @@ namespace TCP {
 
 class TcpServer {
  public:
-  TcpServer(int port, logging_foo f_logger);
-  TcpServer(int port);
+  TcpServer(int port, logging_foo f_logger = LoggerCap);
   ~TcpServer();
 
   TcpClient AcceptConnection();
