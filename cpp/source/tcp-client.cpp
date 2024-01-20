@@ -212,68 +212,77 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
 
   logger.Log("Starting loop", Debug);
 
-  auto last_connection = std::chrono::system_clock::now().time_since_epoch();
-  while (true) {
-    logger.Log("Starting waiting for ping", Debug);
-    auto curr_time = std::chrono::system_clock::now().time_since_epoch();
-    auto waiting = WaitForData(socket, kLoopMsTimeout * 2, logger, foo_log);
-    logger.Log("Checking term flag", Debug);
+  try {
+    auto last_connection = std::chrono::system_clock::now().time_since_epoch();
+    while (true) {
+      logger.Log("Starting waiting for ping", Debug);
+      auto curr_time = std::chrono::system_clock::now().time_since_epoch();
+      auto waiting = WaitForData(socket, kLoopMsTimeout * 2, logger, foo_log);
+      logger.Log("Checking term flag", Debug);
 
-    this_mutex->lock();
-    bool term_flag = (**this_pointer).is_active_;
-    this_mutex->unlock();
-    if (!term_flag) {
-      return;
-    }
+      this_mutex->lock();
+      bool term_flag = (**this_pointer).is_active_;
+      this_mutex->unlock();
+      if (!term_flag) {
+        return;
+      }
 
-    if (!waiting.has_value()) {
-      logger.Log("Ping is not available", Debug);
-      if (std::chrono::duration_cast<std::chrono::milliseconds>(
-              std::chrono::system_clock::now().time_since_epoch() -
-              last_connection)
-              .count() > kNoAnswMsTimeout) {
-        logger.Log("Connection timeout. Disconnecting", Info);
+      if (!waiting.has_value()) {
+        logger.Log("Ping is not available", Debug);
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch() -
+                last_connection)
+                .count() > kNoAnswMsTimeout) {
+          logger.Log("Connection timeout. Disconnecting", Info);
+          this_mutex->lock();
+          (**this_pointer).ms_ping_ = -1;
+          this_mutex->unlock();
+          return;
+        }
+        logger.Log("Connection is not timeout", Debug);
+        continue;
+      }
+
+      logger.Log("Ping is available. Receiving", Debug);
+      auto ping_str = RawRecv(socket, kULLMaxDigits + 1);
+      if (ping_str.size() != kULLMaxDigits + 1) {
+        logger.Log("Error occurred while receiving", Warning);
         this_mutex->lock();
         (**this_pointer).ms_ping_ = -1;
         this_mutex->unlock();
+
+        TcpException(TcpException::Receiving, foo_log, errno);
         return;
       }
-      logger.Log("Connection is not timeout", Debug);
-      continue;
-    }
-
-    logger.Log("Ping is available. Receiving", Debug);
-    auto ping_str = RawRecv(socket, kULLMaxDigits + 1);
-    if (ping_str.size() != kULLMaxDigits + 1) {
-      logger.Log("Error occurred while receiving", Warning);
+      logger.Log("Ping received. Setting", Debug);
       this_mutex->lock();
-      (**this_pointer).ms_ping_ = -1;
+      (**this_pointer).ms_ping_ = std::stoi(ping_str);
       this_mutex->unlock();
 
-      TcpException(TcpException::Receiving, foo_log, errno);
-      return;
+      logger.Log("Sending delay", Debug);
+      auto recv_time = curr_time + std::chrono::milliseconds(waiting.value());
+      auto send_recv_diff =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::system_clock::now().time_since_epoch() - recv_time);
+      if (RawSend(socket, std::to_string(send_recv_diff.count()),
+                  kULLMaxDigits + 1) != kULLMaxDigits + 1) {
+        logger.Log("Error occurred while sending", Warning);
+        this_mutex->lock();
+        (**this_pointer).ms_ping_ = -1;
+        this_mutex->unlock();
+
+        TcpException(TcpException::Sending, foo_log, errno);
+        return;
+      }
+      last_connection = std::chrono::system_clock::now().time_since_epoch();
+      logger.Log("Sending is successful", Debug);
     }
-    logger.Log("Ping received. Setting", Debug);
+  } catch (TcpException& exception) {
+    logger.Log("Exception caught: " + std::string(exception.what()), Warning);
     this_mutex->lock();
-    (**this_pointer).ms_ping_ = std::stoi(ping_str);
+    (**this_pointer).ms_ping_ = -1;
     this_mutex->unlock();
-
-    logger.Log("Sending delay", Debug);
-    auto recv_time = curr_time + std::chrono::milliseconds(waiting.value());
-    auto send_recv_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch() - recv_time);
-    if (RawSend(socket, std::to_string(send_recv_diff.count()),
-                kULLMaxDigits + 1) != kULLMaxDigits + 1) {
-      logger.Log("Error occurred while sending", Warning);
-      this_mutex->lock();
-      (**this_pointer).ms_ping_ = -1;
-      this_mutex->unlock();
-
-      TcpException(TcpException::Sending, foo_log, errno);
-      return;
-    }
-    last_connection = std::chrono::system_clock::now().time_since_epoch();
-    logger.Log("Sending is successful", Debug);
+    return;
   }
 }
 
@@ -289,55 +298,74 @@ void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
 
   logger.Log("Starting loop", Debug);
 
-  while (true) {
+  try {
+    while (true) {
+      logger.Log("Getting flag and cached ping", Debug);
+      this_mutex->lock();
+      bool term_flag = (**this_pointer).is_active_;
+      int cached_ping = (**this_pointer).ms_ping_;
+      this_mutex->unlock();
+      if (!term_flag) {
+        return;
+      }
+      logger.Log("Variables got. Sending ping", Debug);
+
+      auto send_time = std::chrono::system_clock::now().time_since_epoch();
+      if (RawSend(socket, std::to_string(cached_ping), kULLMaxDigits + 1) !=
+          kULLMaxDigits + 1) {
+        logger.Log("Error occurred while sending ping", Warning);
+        this_mutex->lock();
+        (**this_pointer).ms_ping_ = -1;
+        this_mutex->unlock();
+        return;
+      }
+
+      logger.Log("Waiting for delay", Debug);
+
+      auto waiting = WaitForData(socket, kLoopMsTimeout + kNoAnswMsTimeout,
+                                 logger, foo_log);
+      auto recv_time = std::chrono::system_clock::now().time_since_epoch();
+
+      if (!waiting.has_value()) {
+        logger.Log("Waiting timeout. Terminating", Warning);
+        this_mutex->lock();
+        (**this_pointer).ms_ping_ = -1;
+        this_mutex->unlock();
+        return;
+      }
+
+      logger.Log("Data is available. Receiving", Debug);
+      auto delay_str = RawRecv(socket, kULLMaxDigits + 1);
+      if (delay_str.size() != kULLMaxDigits + 1) {
+        logger.Log("Error occurred while receiving", Warning);
+        this_mutex->lock();
+        (**this_pointer).ms_ping_ = -1;
+        this_mutex->unlock();
+
+        TcpException(TcpException::Receiving, foo_log, errno);
+        return;
+      }
+
+      logger.Log("Computing ping", Debug);
+      auto curr_ping = std::chrono::duration_cast<std::chrono::milliseconds>(
+          recv_time - send_time -
+          std::chrono::milliseconds(std::stoll(delay_str)));
+      curr_ping /= 2;
+
+      logger.Log("Setting ping: " + std::to_string(curr_ping.count()), Debug);
+      this_mutex->lock();
+      (**this_pointer).ms_ping_ = curr_ping.count();
+      this_mutex->unlock();
+
+      logger.Log("Continuing", Debug);
+      std::this_thread::sleep_for(std::chrono::milliseconds(kLoopMsTimeout));
+    }
+  } catch (TcpException& exception) {
+    logger.Log("Exception caught: " + std::string(exception.what()), Warning);
     this_mutex->lock();
-    bool term_flag = (**this_pointer).is_active_;
-    int cached_ping = (**this_pointer).ms_ping_;
+    (**this_pointer).ms_ping_ = -1;
     this_mutex->unlock();
-    if (!term_flag) {
-      return;
-    }
-
-    auto send_time = std::chrono::system_clock::now().time_since_epoch();
-    if (RawSend(socket, std::to_string(cached_ping), kULLMaxDigits + 1) !=
-        kULLMaxDigits + 1) {
-      this_mutex->lock();
-      (**this_pointer).ms_ping_ = -1;
-      this_mutex->unlock();
-      return;
-    }
-
-    auto waiting =
-        WaitForData(socket, kLoopMsTimeout + kNoAnswMsTimeout, logger, foo_log);
-    auto recv_time = std::chrono::system_clock::now().time_since_epoch();
-
-    if (!waiting.has_value()) {
-      this_mutex->lock();
-      (**this_pointer).ms_ping_ = -1;
-      this_mutex->unlock();
-      return;
-    }
-
-    auto delay_str = RawRecv(socket, kULLMaxDigits + 1);
-    if (delay_str.size() != kULLMaxDigits + 1) {
-      this_mutex->lock();
-      (**this_pointer).ms_ping_ = -1;
-      this_mutex->unlock();
-
-      TcpException(TcpException::Receiving, foo_log, errno);
-      return;
-    }
-
-    auto curr_ping = std::chrono::duration_cast<std::chrono::milliseconds>(
-        recv_time - send_time -
-        std::chrono::milliseconds(std::stoll(delay_str)));
-    curr_ping /= 2;
-
-    this_mutex->lock();
-    (**this_pointer).ms_ping_ = curr_ping.count();
-    this_mutex->unlock();
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(kLoopMsTimeout));
+    return;
   }
 }
 
