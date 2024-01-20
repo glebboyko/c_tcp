@@ -59,9 +59,6 @@ class TcpClient {
     return true;
   }
 
-  std::string StrRecv(int ms_timeout, Logger& logger);
-  void StrSend(const std::string& message, Logger& logger);
-
   void StopClient() noexcept;
   bool IsAvailable();
   bool IsConnected() noexcept;
@@ -114,6 +111,9 @@ class TcpClient {
 
     FromArgs(output, tail...);
   }
+
+  std::string StrRecv(int ms_timeout, Logger& logger);
+  void StrSend(const std::string& message, Logger& logger);
 
   friend TcpServer;
 };
