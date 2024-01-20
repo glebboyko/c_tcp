@@ -372,7 +372,12 @@ void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
 std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
   logger.Log("Starting waiting for data", Debug);
   if (!WaitForData(main_socket_, ms_timeout, logger, logger_).has_value()) {
-    logger.Log("Timeout", Info);
+    logger.Log("Timeout. Checking is peer is connected", Info);
+    if (!IsConnected()) {
+      logger.Log("Peer is not connected", Warning);
+      throw TcpException(TcpException::ConnectionBreak, logger_);
+    }
+    logger.Log("Peer is connected", Info);
     return "";
   }
   logger.Log("Data is available. Receiving", Debug);
@@ -424,24 +429,25 @@ void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
 
 bool TcpClient::IsAvailable() {
   LClient logger(LClient::FIsAvailable, this, logger_);
+  logger.Log("Checking data availability", Debug);
+  bool availability = WaitForData(main_socket_, 0, logger, logger_).has_value();
+  if (availability) {
+    return true;
+  }
   logger.Log("Checking if peer connected", Debug);
   if (!IsConnected()) {
     logger.Log("Peer is not connected", Debug);
     throw TcpException(TcpException::ConnectionBreak, logger_);
   }
 
-  logger.Log("Peer is connected. Checking data availability", Debug);
-  return WaitForData(main_socket_, 0, logger, logger_).has_value();
+  logger.Log("Peer is connected", Debug);
+  return false;
 }
 bool TcpClient::IsConnected() noexcept {
   if (!is_active_) {
     return false;
   }
-  if (ms_ping_ < 0) {
-    StopClient();
-    return false;
-  }
-  return true;
+  return ms_ping_ < 0;
 }
 
 int TcpClient::GetPing() {

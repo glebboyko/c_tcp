@@ -27,7 +27,12 @@ class TcpClient {
   template <typename... Args>
   void Send(const Args&... args) {
     LClient logger(LClient::FSend, this, logger_);
-    logger.Log("Starting sending method", Debug);
+    logger.Log("Starting sending method. Checking is peer connected", Debug);
+    if (!IsConnected()) {
+      logger.Log("Peer is not connected", Warning);
+      throw TcpException(TcpException::ConnectionBreak, logger_);
+    }
+    logger.Log("Peer is connected", Debug);
 
     logger.Log("Getting string from args", Debug);
     std::string input;
