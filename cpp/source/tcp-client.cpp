@@ -447,7 +447,7 @@ bool TcpClient::IsConnected() noexcept {
   if (!is_active_) {
     return false;
   }
-  return ms_ping_ < 0;
+  return ms_ping_ >= 0;
 }
 
 int TcpClient::GetPing() {
