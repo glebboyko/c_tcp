@@ -47,6 +47,10 @@ class TcpClient {
     LClient logger(LClient::FRecv, this, logger_);
     logger.Log("Starting receiving method", Debug);
 
+    if (!is_active_) {
+      CheckReceiveError();
+    }
+
     logger.Log("Receiving string", Debug);
     auto recv_str = StrRecv(ms_timeout, logger);
     logger.Log(
@@ -119,6 +123,8 @@ class TcpClient {
 
   std::string StrRecv(int ms_timeout, Logger& logger);
   void StrSend(const std::string& message, Logger& logger);
+
+  void CheckReceiveError();
 
   friend TcpServer;
 };

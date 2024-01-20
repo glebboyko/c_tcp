@@ -373,16 +373,14 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
   logger.Log("Starting waiting for data", Debug);
   if (!WaitForData(main_socket_, ms_timeout, logger, logger_).has_value()) {
     logger.Log("Timeout. Checking is peer is connected", Info);
-    if (!IsConnected()) {
-      logger.Log("Peer is not connected", Warning);
-      throw TcpException(TcpException::ConnectionBreak, logger_);
-    }
+    CheckReceiveError();
     logger.Log("Peer is connected", Info);
     return "";
   }
   logger.Log("Data is available. Receiving", Debug);
   auto message_size = RawRecv(main_socket_, kULLMaxDigits + 1);
   if (message_size.empty()) {
+    CheckReceiveError();
     throw TcpException(TcpException::Receiving, logger_, errno);
   }
   if (message_size.size() != kULLMaxDigits + 1) {
@@ -430,13 +428,19 @@ void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
 bool TcpClient::IsAvailable() {
   LClient logger(LClient::FIsAvailable, this, logger_);
   logger.Log("Checking data availability", Debug);
+
+  if (!is_active_) {
+    CheckReceiveError();
+  }
+
   bool availability = WaitForData(main_socket_, 0, logger, logger_).has_value();
   if (availability) {
     return true;
   }
   logger.Log("Checking if peer connected", Debug);
   if (!IsConnected()) {
-    logger.Log("Peer is not connected", Debug);
+    logger.Log("Peer is not connected. Stopping client", Debug);
+    StopClient();
     throw TcpException(TcpException::ConnectionBreak, logger_);
   }
 
@@ -459,5 +463,12 @@ int TcpClient::GetPing() {
 
 void TcpClient::ToArgs(std::stringstream& stream) {}
 void TcpClient::FromArgs(std::string& output) {}
+
+void TcpClient::CheckReceiveError() {
+  if (!IsConnected()) {
+    StopClient();
+    throw TcpException(TcpException::ConnectionBreak, logger_, errno);
+  }
+}
 
 }  // namespace TCP

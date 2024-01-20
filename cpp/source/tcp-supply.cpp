@@ -91,7 +91,6 @@ TcpException::TcpException(ExceptionType type, logging_foo f_logger, int error,
     : type_(type), error_(error) {
   if (error == ECONNRESET) {
     type_ = ConnectionBreak;
-    error_ = 0;
   }
   if (message_leak) {
     std::string mode = type_ == Receiving ? "received" : "sent";
