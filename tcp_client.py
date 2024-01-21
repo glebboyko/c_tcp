@@ -80,7 +80,7 @@ class TcpClient:
         if GetNum(RawRecv(self.__main_socket, 1)) != 1:
             raise RuntimeError("Signal is term")
 
-        self.__heartbeat_thread = threading.Thread(target=self._HeartBeat)
+        self.__heartbeat_thread = threading.Thread(target=self.__HeartBeat)
         self.__heartbeat_thread.start()
 
         self.__constructed = True
