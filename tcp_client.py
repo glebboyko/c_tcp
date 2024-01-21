@@ -4,7 +4,6 @@ import socket
 import threading
 import select
 
-
 kULLMaxDigits = 20
 kLoopMsTimeout = 100
 kNoAnswMsTimeout = 1000
@@ -36,16 +35,20 @@ def ToStr(*args) -> str:
         print("arg: %s" % str(arg))
     return union
 
+
 def GetMsTime() -> int:
     return round(time.time() * 1000)
+
 
 def RawSend(sock: socket.socket, message: str, size: int):
     if len(message) < size:
         message = message + ("\0" * (size - len(message)))
     sock.send((message[:size]).encode(encoding))
 
+
 def RawRecv(sock: socket.socket, size: int) -> str:
     return str(sock.recv(size), encoding)
+
 
 def WaitForData(sock: socket.socket, timeout: float) -> int:
     start_time = GetMsTime()
@@ -57,6 +60,7 @@ def WaitForData(sock: socket.socket, timeout: float) -> int:
         return -1
 
     return finish_time - start_time
+
 
 class TcpClient:
     def __init__(self, host: str, port: int):
@@ -75,10 +79,16 @@ class TcpClient:
         if GetNum(RawRecv(self.__main_socket, 1)) != 1:
             raise RuntimeError("Signal is term")
 
-        self.__heartbeat_thread = threading.Thread(target=self._HeartBeat, args=(self,))
+        self.__heartbeat_thread = threading.Thread(target=self._HeartBeat)
         self.__heartbeat_thread.start()
 
+        self.__constructed = True
+
     def __del__(self):
+        if not self.__constructed:
+            self.__main_socket.close()
+            self.__heartbeat_socket.close()
+            return
         self.StopClient()
 
     def StopClient(self):
@@ -116,8 +126,6 @@ class TcpClient:
         if self.__ms_ping == -1:
             raise ConnectionResetError("Peer is not connected")
         return self.__ms_ping
-
-
 
     def Send(self, *args):
         if not self.IsConnected():
@@ -164,7 +172,7 @@ class TcpClient:
                         self.__ms_ping = -1
                         return
                     continue
-                self.__ms_ping = GetNum(RawRecv(self.__heartbeat_thread, kULLMaxDigits + 1))
+                self.__ms_ping = GetNum(RawRecv(self.__heartbeat_socket, kULLMaxDigits + 1))
                 recv_time = start_time + waiting_time
                 RawSend(self.__heartbeat_socket, str(GetMsTime() - recv_time), kULLMaxDigits + 1)
                 last_connection = GetMsTime()
@@ -178,5 +186,4 @@ class TcpClient:
 
     __is_active = True
     __ms_ping = 0
-
-
+    __constructed = False
