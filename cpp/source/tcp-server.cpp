@@ -13,8 +13,12 @@
 
 namespace TCP {
 
-TcpServer::TcpServer(int port, logging_foo f_logger)
-    : port_(port), logger_(f_logger) {
+TcpServer::TcpServer(int port, int ms_ping_threshold, int ms_loop_period,
+                     logging_foo f_logger)
+    : port_(port),
+      ping_threshold_(ms_ping_threshold),
+      loop_period_(ms_loop_period),
+      logger_(f_logger) {
   LServer logger(LServer::FConstructor, this, logger_);
 
   logger.Log("Trying to create socket", Debug);
@@ -48,6 +52,11 @@ TcpServer::TcpServer(int port, logging_foo f_logger)
       "Server on port " + std::to_string(port) + " successfully launcher",
       Info);
 }
+
+TcpServer::TcpServer(int port, int ms_ping_threshold, TCP::logging_foo f_logger)
+    : TcpServer(port, ms_ping_threshold, kDefLoopPeriod, f_logger) {}
+TcpServer::TcpServer(int port, TCP::logging_foo f_logger)
+    : TcpServer(port, kDefPingThreshold, kDefLoopPeriod, f_logger) {}
 
 TcpServer::~TcpServer() {
   LServer logger(LServer::FDestructor, this, logger_);
@@ -112,8 +121,7 @@ void TcpServer::AcceptLoop() noexcept {
   while (is_active_) {
     try {
       logger.Log("Starting waiting for acceptance", Debug);
-      if (!WaitForData(listener_, kLoopMsTimeout, logger, logger_)
-               .has_value()) {
+      if (!WaitForData(listener_, loop_period_, logger, logger_).has_value()) {
         logger.Log("Acceptance timeout", Debug);
         continue;
       }
@@ -134,7 +142,7 @@ void TcpServer::AcceptLoop() noexcept {
       logger.Log("Connection accepted", Debug);
 
       logger.Log("Waiting for client to send password", Debug);
-      if (!WaitForData(client, kNoAnswMsTimeout, logger, logger_).has_value()) {
+      if (!WaitForData(client, ping_threshold_, logger, logger_).has_value()) {
         logger.Log("Waiting timeout. Sending term signal", Warning);
         RawSend(client, "0", kULLMaxDigits + 1);
         continue;
@@ -175,7 +183,8 @@ void TcpServer::AcceptLoop() noexcept {
           logger.Log("Sent run signal. Locking mutex", Debug);
           accept_mutex_.lock();
           logger.Log("Mutex locked. Creating TcpClient", Debug);
-          accepted_.emplace(TcpClient(client_recv, client, logger_));
+          accepted_.emplace(TcpClient(client_recv, client, ping_threshold_,
+                                      loop_period_, logger_));
           accept_mutex_.unlock();
           accepter_semaphore_.release();
           logger.Log("Mutex unlocked", Debug);

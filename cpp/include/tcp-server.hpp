@@ -12,6 +12,9 @@ namespace TCP {
 
 class TcpServer {
  public:
+  TcpServer(int port, int ms_ping_threshold, int ms_loop_period,
+            logging_foo f_logger = LoggerCap);
+  TcpServer(int port, int ms_ping_threshold, logging_foo f_logger = LoggerCap);
   TcpServer(int port, logging_foo f_logger = LoggerCap);
   ~TcpServer();
 
@@ -26,6 +29,9 @@ class TcpServer {
   int listener_;
   bool is_active_ = true;
   int port_;
+
+  int ping_threshold_;
+  int loop_period_;
 
   std::queue<TcpClient> accepted_;
   std::mutex accept_mutex_;
