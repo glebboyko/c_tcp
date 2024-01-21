@@ -1,20 +1,21 @@
 #pragma once
 
-#include <list>
+#include <map>
 #include <mutex>
-#include <string>
+#include <queue>
+#include <semaphore>
+#include <thread>
 
-#include "../source/basic-ops.hpp"
 #include "tcp-client.hpp"
-#include "tcp-supply.hpp"
 
 namespace TCP {
 
 class TcpServer {
  public:
-  TcpServer(int protocol, int port, logging_foo logger,
-            int max_queue_length = 1);
-  TcpServer(int protocol, int port, int max_queue_length = 1);
+  TcpServer(int port, int ms_ping_threshold, int ms_loop_period,
+            logging_foo f_logger = LoggerCap);
+  TcpServer(int port, int ms_ping_threshold, logging_foo f_logger = LoggerCap);
+  TcpServer(int port, logging_foo f_logger = LoggerCap);
   ~TcpServer();
 
   TcpClient AcceptConnection();
@@ -23,9 +24,26 @@ class TcpServer {
   bool IsListenerOpen() const noexcept;
 
  private:
+  static const int kMaxClientLength = 1024;
+
   int listener_;
+  bool is_active_ = true;
+  int port_;
+
+  int ping_threshold_;
+  int loop_period_;
+
+  std::queue<TcpClient> accepted_;
+  std::mutex accept_mutex_;
+  std::counting_semaphore<kMaxClientLength> accepter_semaphore_ =
+      std::counting_semaphore<kMaxClientLength>(0);
+
+  std::map<uint64_t, int> uncomplete_client_;
 
   logging_foo logger_;
+
+  std::thread accept_thread_;
+  void AcceptLoop() noexcept;
 };
 
 }  // namespace TCP
