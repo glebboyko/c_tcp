@@ -5,8 +5,6 @@ import threading
 import select
 
 kULLMaxDigits = 20
-kLoopMsTimeout = 100
-kNoAnswMsTimeout = 1000
 encoding = 'utf-8'
 
 
@@ -63,18 +61,21 @@ def WaitForData(sock: socket.socket, timeout: float) -> int:
 
 
 class TcpClient:
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, ms_ping_threshold=1000, ms_loop_period=100):
+        self.__ping_threshold = ms_ping_threshold
+        self.__loop_period = ms_loop_period
+
         self.__heartbeat_socket.connect((host, port))
         RawSend(self.__heartbeat_socket, "0", kULLMaxDigits + 1)
 
-        if WaitForData(self.__heartbeat_socket, kNoAnswMsTimeout) < 0:
+        if WaitForData(self.__heartbeat_socket, self.__ping_threshold) < 0:
             raise TimeoutError("Password waiting timeout")
         password = RawRecv(self.__heartbeat_socket, kULLMaxDigits + 1)
 
         self.__main_socket.connect((host, port))
         RawSend(self.__main_socket, password, kULLMaxDigits + 1)
 
-        if WaitForData(self.__heartbeat_socket, kNoAnswMsTimeout) < 0:
+        if WaitForData(self.__heartbeat_socket, self.__ping_threshold) < 0:
             raise TimeoutError("Signal waiting timeout")
         if GetNum(RawRecv(self.__main_socket, 1)) != 1:
             raise RuntimeError("Signal is term")
@@ -156,19 +157,19 @@ class TcpClient:
 
         return RawRecv(self.__main_socket, b_num)[:-1].split(' ')
 
-    def _HeartBeat(self):
+    def __HeartBeat(self):
         try:
             last_connection = GetMsTime()
             while True:
                 start_time = GetMsTime()
-                waiting_time = WaitForData(self.__heartbeat_socket, kLoopMsTimeout * 2)
+                waiting_time = WaitForData(self.__heartbeat_socket, self.__loop_period)
                 if not self.__is_active:
                     return
                 if waiting_time == -2:
                     self.__ms_ping = -1
                     return
                 if waiting_time == -1:
-                    if GetMsTime() - last_connection > kNoAnswMsTimeout:
+                    if GetMsTime() - last_connection > self.__ping_threshold:
                         self.__ms_ping = -1
                         return
                     continue
@@ -185,5 +186,9 @@ class TcpClient:
     __heartbeat_thread: threading.Thread
 
     __is_active = True
+
+    __ping_threshold: int
+    __loop_period: int
+
     __ms_ping = 0
     __constructed = False
