@@ -20,6 +20,10 @@ class TcpServer;
 
 class TcpClient {
  public:
+  TcpClient(const char* addr, int port, int ms_ping_threshold,
+            int ms_loop_period, logging_foo f_logger = LoggerCap);
+  TcpClient(const char* addr, int port, int ms_ping_threshold,
+            logging_foo f_logger = LoggerCap);
   TcpClient(const char* addr, int port, logging_foo f_logger = LoggerCap);
   TcpClient(TcpClient&&) noexcept;
   ~TcpClient();
@@ -78,6 +82,9 @@ class TcpClient {
   int main_socket_;
   int heartbeat_socket_;
 
+  int ping_threshold_;
+  int loop_period_;
+
   std::thread heartbeat_thread_;
 
   TcpClient** this_pointer_ = nullptr;
@@ -89,10 +96,11 @@ class TcpClient {
 
   logging_foo logger_;
 
-  TcpClient(int heartbeat_socket, int main_socket, logging_foo f_logger);
+  TcpClient(int heartbeat_socket, int main_socket, int ping_threshold,
+            int loop_period, logging_foo f_logger);
 
   static void HeartBeatClient(TcpClient** this_pointer,
-                        std::mutex* this_mutex) noexcept;
+                              std::mutex* this_mutex) noexcept;
   static void HeartBeatServer(TcpClient** this_pointer,
                               std::mutex* this_mutex) noexcept;
 

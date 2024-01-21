@@ -15,8 +15,11 @@
 
 namespace TCP {
 
-TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
-    : logger_(f_logger) {
+TcpClient::TcpClient(const char* addr, int port, int ms_ping_threshold,
+                     int ms_loop_period, logging_foo f_logger)
+    : ping_threshold_(ms_ping_threshold),
+      loop_period_(ms_loop_period),
+      logger_(f_logger) {
   LClient logger(LClient::FConstructor, this, logger_);
 
   logger.Log("Creating sender socket", Debug);
@@ -39,7 +42,7 @@ TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
     throw TcpException(TcpException::Sending, logger_, errno);
   }
   logger.Log("Waiting for password", Debug);
-  if (!WaitForData(heartbeat_socket_, kNoAnswMsTimeout, logger, logger_)
+  if (!WaitForData(heartbeat_socket_, ping_threshold_, logger, logger_)
            .has_value()) {
     logger.Log("Timeout", Error);
     close(heartbeat_socket_);
@@ -80,7 +83,7 @@ TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
   }
 
   logger.Log("Waiting for signal", Debug);
-  if (!WaitForData(main_socket_, kNoAnswMsTimeout, logger, logger_)
+  if (!WaitForData(main_socket_, ping_threshold_, logger, logger_)
            .has_value()) {
     logger.Log("Timeout", Error);
     close(heartbeat_socket_);
@@ -124,6 +127,13 @@ TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
 
   logger.Log("TcpClient created", Info);
 }
+
+TcpClient::TcpClient(const char* addr, int port, int ms_ping_threshold,
+                     logging_foo f_logger)
+    : TcpClient(addr, port, ms_ping_threshold, kDefLoopPeriod, f_logger) {}
+TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
+    : TcpClient(addr, port, kDefPingThreshold, kDefLoopPeriod, f_logger) {}
+
 TcpClient::TcpClient(TCP::TcpClient&& other) noexcept
     : main_socket_(other.main_socket_),
       heartbeat_socket_(other.main_socket_),
@@ -147,10 +157,12 @@ TcpClient::TcpClient(TCP::TcpClient&& other) noexcept
   other.is_active_ = false;
   logger.Log("TCP-Client is built via move constructor", Info);
 }
-TcpClient::TcpClient(int heartbeat_socket, int main_socket,
-                     logging_foo f_logger)
+TcpClient::TcpClient(int heartbeat_socket, int main_socket, int ping_threshold,
+                     int loop_period, logging_foo f_logger)
     : heartbeat_socket_(heartbeat_socket),
       main_socket_(main_socket),
+      ping_threshold_(ping_threshold),
+      loop_period_(loop_period),
       logger_(f_logger) {
   LClient logger(LClient::FFromServerConstructor, this, logger_);
   logger.Log("Building TCP-Client via move constructor", Debug);
@@ -207,6 +219,8 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
   LClient logger(LClient::FHeartBeatLoop, this_pointer, foo_log);
 
   int socket = (**this_pointer).heartbeat_socket_;
+  int ping_threshold = (**this_pointer).ping_threshold_;
+  int loop_period = (**this_pointer).loop_period_;
 
   this_mutex->unlock();
 
@@ -217,7 +231,7 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
     while (true) {
       logger.Log("Starting waiting for ping", Debug);
       auto curr_time = std::chrono::system_clock::now().time_since_epoch();
-      auto waiting = WaitForData(socket, kLoopMsTimeout * 2, logger, foo_log);
+      auto waiting = WaitForData(socket, loop_period, logger, foo_log);
       logger.Log("Checking term flag", Debug);
 
       this_mutex->lock();
@@ -232,7 +246,7 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
         if (std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch() -
                 last_connection)
-                .count() > kNoAnswMsTimeout) {
+                .count() > ping_threshold) {
           logger.Log("Connection timeout. Disconnecting", Info);
           this_mutex->lock();
           (**this_pointer).ms_ping_ = -1;
@@ -293,6 +307,8 @@ void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
   LClient logger(LClient::FHeartBeatLoop, this_pointer, foo_log);
 
   int socket = (**this_pointer).heartbeat_socket_;
+  int ping_threshold = (**this_pointer).ping_threshold_;
+  int loop_period = (**this_pointer).loop_period_;
 
   this_mutex->unlock();
 
@@ -322,8 +338,8 @@ void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
 
       logger.Log("Waiting for delay", Debug);
 
-      auto waiting = WaitForData(socket, kLoopMsTimeout + kNoAnswMsTimeout,
-                                 logger, foo_log);
+      auto waiting =
+          WaitForData(socket, loop_period + ping_threshold, logger, foo_log);
       auto recv_time = std::chrono::system_clock::now().time_since_epoch();
 
       if (!waiting.has_value()) {
@@ -358,7 +374,7 @@ void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
       this_mutex->unlock();
 
       logger.Log("Continuing", Debug);
-      std::this_thread::sleep_for(std::chrono::milliseconds(kLoopMsTimeout));
+      std::this_thread::sleep_for(std::chrono::milliseconds(loop_period));
     }
   } catch (TcpException& exception) {
     logger.Log("Exception caught: " + std::string(exception.what()), Warning);
