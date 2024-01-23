@@ -157,6 +157,9 @@ class TcpClient:
 
         return RawRecv(self.__main_socket, b_num)[:-1].split(' ')
 
+    def GetMsPingThreshold(self):
+        return self.__ping_threshold
+
     def __HeartBeat(self):
         try:
             last_connection = GetMsTime()
