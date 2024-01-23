@@ -30,7 +30,6 @@ def ToStr(*args) -> str:
         if len(union) != 0:
             union = union + " "
         union = union + str(arg)
-        print("arg: %s" % str(arg))
     return union
 
 
