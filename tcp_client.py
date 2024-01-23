@@ -28,7 +28,7 @@ def ToStr(*args) -> str:
     union = ""
     for arg in args[0]:
         if len(union) != 0:
-            union = union + " "
+            union = union + "\0 "
         union = union + str(arg)
         print("arg: %s" % str(arg))
     return union
@@ -133,10 +133,10 @@ class TcpClient:
             raise ConnectionResetError("Peer is not connected")
 
         data = ToStr(args)
-        b_num = FillStr(str(len(data) + 1), kULLMaxDigits + 1)
+        b_num = FillStr(str(len(data)), kULLMaxDigits + 1)
 
         message = b_num + data
-        RawSend(self.__main_socket, message, len(message) + 1)
+        RawSend(self.__main_socket, message, len(message))
 
     def Receive(self, timeout: int) -> List[str]:
         if not self.__is_active and not self.IsConnected():
@@ -155,7 +155,10 @@ class TcpClient:
         if WaitForData(self.__main_socket, 0) < 0:
             raise RuntimeError("Protocol breaking")
 
-        return RawRecv(self.__main_socket, b_num)[:-1].split(' ')
+        data = RawRecv(self.__main_socket, b_num).split(' ')
+        for arg in data:
+            arg = arg[:-1]
+        return data
 
     def GetMsPingThreshold(self):
         return self.__ping_threshold
