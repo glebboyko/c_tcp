@@ -427,7 +427,7 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
 }
 void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
   logger.Log("Creating to_send string", Debug);
-  std::string to_send = std::to_string(message.size());
+  std::string to_send = std::to_string(message.size() + 1);
   for (size_t i = to_send.size(); i < kULLMaxDigits + 1; ++i) {
     to_send.push_back('\0');
   }
