@@ -487,4 +487,6 @@ void TcpClient::CheckReceiveError() {
   }
 }
 
+int TcpClient::GetMsPingThreshold() const noexcept { return ping_threshold_; }
+
 }  // namespace TCP

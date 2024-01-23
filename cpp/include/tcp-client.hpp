@@ -78,6 +78,8 @@ class TcpClient {
 
   int GetPing();
 
+  int GetMsPingThreshold() const noexcept;
+
  private:
   int main_socket_;
   int heartbeat_socket_;
