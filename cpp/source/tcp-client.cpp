@@ -434,7 +434,7 @@ void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
 
   to_send += message;
   logger.Log("Trying to send data", Debug);
-  auto answ = RawSend(main_socket_, to_send, to_send.size());
+  auto answ = RawSend(main_socket_, to_send, to_send.size() + 1);
   if (answ < 0) {
     throw TcpException(TcpException::Sending, logger_, errno);
   }
