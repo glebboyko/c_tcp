@@ -438,7 +438,7 @@ void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
   if (answ < 0) {
     throw TcpException(TcpException::Sending, logger_, errno);
   }
-  if (answ != to_send.size()) {
+  if (answ != to_send.size() + 1) {
     throw TcpException(TcpException::Sending, logger_, 0, true);
   }
   logger.Log("Message sent successfully", Info);
