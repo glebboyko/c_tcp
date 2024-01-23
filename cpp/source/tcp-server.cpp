@@ -209,4 +209,6 @@ void TcpServer::AcceptLoop() noexcept {
   }
 }
 
+int TcpServer::GetMsPingThreshold() const noexcept { return ping_threshold_; }
+
 }  // namespace TCP
