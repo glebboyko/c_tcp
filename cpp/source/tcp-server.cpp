@@ -61,15 +61,7 @@ TcpServer::TcpServer(int port, TCP::logging_foo f_logger)
 TcpServer::~TcpServer() {
   LServer logger(LServer::FDestructor, this, logger_);
 
-  is_active_ = false;
-  if (listener_ != 0) {
-    close(listener_);
-    logger.Log("Stopped listening", Debug);
-    logger.Log("Joining accepter thread", Debug);
-    accept_thread_.join();
-  } else {
-    logger.Log("Listening has already been stopped and joined", Debug);
-  }
+  CloseListener();
 
   logger.Log("Server destructed", Info);
 }
@@ -79,7 +71,15 @@ TcpClient TcpServer::AcceptConnection() {
 
   logger.Log("Waiting for data is available", Debug);
   accepter_semaphore_.acquire();
-  logger.Log("Get data availability flag. Locking mutex", Debug);
+  logger.Log("Get data availability flag. Checking if active", Debug);
+
+  if (!is_active_) {
+    logger.Log("Server is not active", Info);
+    accepter_semaphore_.release();
+    throw TcpException(TcpException::ConnectionBreak, logger_);
+  }
+
+  logger.Log("Active. Locking mutex", Debug);
   accept_mutex_.lock();
   logger.Log("Mutex locked", Debug);
 
@@ -103,15 +103,22 @@ TcpClient TcpServer::AcceptConnection() {
 void TcpServer::CloseListener() noexcept {
   LServer logger(LServer::FCloseListener, this, logger_);
 
-  is_active_ = false;
-  close(listener_);
-  logger.Log("Listener closed", Debug);
-  listener_ = 0;
-  logger.Log("Waiting for accepter joining", Debug);
-  accept_thread_.join();
-  logger.Log("Listener closed. Accepter joined", Info);
+  if (is_active_) {
+    is_active_ = false;
+    close(listener_);
+    logger.Log("Listener closed", Debug);
+    listener_ = 0;
+    logger.Log("Waiting for accepter joining", Debug);
+    accept_thread_.join();
+    logger.Log("Listener closed. Accepter joined", Info);
+
+    logger.Log("Releasing accepter waiters", Debug);
+    accepter_semaphore_.release();
+  } else {
+    logger.Log("Listener is already closed", Info);
+  }
 }
-bool TcpServer::IsListenerOpen() const noexcept { return listener_ != 0; }
+bool TcpServer::IsListenerOpen() const noexcept { return is_active_; }
 
 void TcpServer::AcceptLoop() noexcept {
   LServer logger(LServer::FLoopAccepter, this, logger_);
@@ -142,10 +149,16 @@ void TcpServer::AcceptLoop() noexcept {
       logger.Log("Connection accepted", Debug);
 
       logger.Log("Waiting for client to send password", Debug);
-      if (!WaitForData(client, ping_threshold_, logger, logger_).has_value()) {
-        logger.Log("Waiting timeout. Sending term signal", Warning);
-        RawSend(client, "0", kULLMaxDigits + 1);
-        continue;
+      try {
+        if (!WaitForData(client, ping_threshold_, logger, logger_)
+                 .has_value()) {
+          logger.Log("Waiting timeout. Sending term signal", Warning);
+          RawSend(client, "0", kULLMaxDigits + 1);
+          continue;
+        }
+      } catch (...) {
+        close(client);
+        throw;
       }
       logger.Log("Client config is available. Trying to receive", Debug);
       auto mode_str = RawRecv(client, kULLMaxDigits + 1);
@@ -208,7 +221,5 @@ void TcpServer::AcceptLoop() noexcept {
     password = (password % LONG_LONG_MAX) + 1;
   }
 }
-
-int TcpServer::GetMsPingThreshold() const noexcept { return ping_threshold_; }
 
 }  // namespace TCP
