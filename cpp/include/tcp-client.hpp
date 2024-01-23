@@ -126,7 +126,7 @@ class TcpClient {
     if (!output.empty()) {
       output.push_back(' ');
     }
-    output += str_head;
+    output += str_head + '\0';
 
     FromArgs(output, tail...);
   }
