@@ -137,10 +137,13 @@ TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
 TcpClient::TcpClient(TCP::TcpClient&& other) noexcept
     : main_socket_(other.main_socket_),
       heartbeat_socket_(other.main_socket_),
+      ping_threshold_(other.ping_threshold_),
+      loop_period_(other.loop_period_),
       heartbeat_thread_(std::move(other.heartbeat_thread_)),
       this_pointer_(other.this_pointer_),
       this_mutex_(other.this_mutex_),
       is_active_(other.is_active_),
+      ms_ping_(other.ms_ping_),
       logger_(other.logger_) {
   if (!is_active_) {
     return;
