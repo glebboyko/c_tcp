@@ -120,4 +120,7 @@ std::optional<int> WaitForData(int dp, int ms_timeout, Logger& logger,
                                logging_foo log_foo);
 ssize_t RawSend(int dp, std::string message, size_t length) noexcept;
 std::string RawRecv(int dp, size_t length) noexcept;
+
+bool SetKeepIdle(int dp) noexcept;
+
 }  // namespace TCP

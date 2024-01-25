@@ -1,6 +1,8 @@
 #include "tcp-supply.hpp"
 
 #include <fcntl.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 
@@ -193,6 +195,23 @@ std::string RawRecv(int dp, size_t length) noexcept {
     result.push_back(message[i]);
   }
   return result;
+}
+
+bool SetKeepIdle(int dp) noexcept {
+  int32_t on = 1, idle_interval = 60, idle_count = 3;
+
+  return setsockopt(dp, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) >= 0 &&
+#ifdef __linux
+         setsockopt(dp, SOL_TCP, TCP_KEEPIDLE, &idle_interval,
+                    sizeof(idle_interval)) >= 0 &&
+         setsockopt(dp, SOL_TCP, TCP_KEEPINTVL, &idle_interval,
+                    sizeof(idle_interval)) >= 0 &&
+         setsockopt(dp, SOL_TCP, TCP_KEEPCNT, &idle_count,
+                    sizeof(idle_count)) >= 0;
+#elif __APPLE__
+         setsockopt(dp, IPPROTO_TCP, TCP_KEEPALIVE, &idle_interval,
+                    sizeof(idle_interval)) >= 0;
+#endif
 }
 
 }  // namespace TCP
