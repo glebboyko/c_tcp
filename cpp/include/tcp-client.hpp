@@ -42,9 +42,7 @@ class TcpClient {
     std::string input;
     FromArgs(input, args...);
     logger.Log("Sending message", Debug);
-    main_socket_mutex_.lock();
     StrSend(input, logger);
-    main_socket_mutex_.unlock();
     logger.Log("Message sent", Info);
   }
 
@@ -58,9 +56,7 @@ class TcpClient {
     }
 
     logger.Log("Receiving string", Debug);
-    main_socket_mutex_.lock();
     auto recv_str = StrRecv(ms_timeout, logger);
-    main_socket_mutex_.unlock();
     logger.Log(
         "Method returned string of size " + std::to_string(recv_str.size()),
         Debug);
@@ -87,8 +83,6 @@ class TcpClient {
  private:
   int main_socket_;
   int heartbeat_socket_;
-
-  std::mutex main_socket_mutex_;
 
   int ping_threshold_;
   int loop_period_;
