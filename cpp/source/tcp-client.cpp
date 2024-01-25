@@ -238,6 +238,16 @@ void TcpClient::HeartBeatClient(TCP::TcpClient** this_pointer,
       logger.Log("Checking term flag", Debug);
 
       this_mutex->lock();
+      if ((**this_pointer).main_socket_mutex_.try_lock()) {
+        try {
+          WaitForData((**this_pointer).main_socket_, 0, logger, foo_log);
+        } catch (...) {
+          (**this_pointer).main_socket_mutex_.unlock();
+          this_mutex->unlock();
+          throw;
+        }
+        (**this_pointer).main_socket_mutex_.unlock();
+      }
       bool term_flag = (**this_pointer).is_active_;
       this_mutex->unlock();
       if (!term_flag) {
@@ -321,6 +331,16 @@ void TcpClient::HeartBeatServer(TCP::TcpClient** this_pointer,
     while (true) {
       logger.Log("Getting flag and cached ping", Debug);
       this_mutex->lock();
+      if ((**this_pointer).main_socket_mutex_.try_lock()) {
+        try {
+          WaitForData((**this_pointer).main_socket_, 0, logger, foo_log);
+        } catch (...) {
+          (**this_pointer).main_socket_mutex_.unlock();
+          this_mutex->unlock();
+          throw;
+        }
+        (**this_pointer).main_socket_mutex_.unlock();
+      }
       bool term_flag = (**this_pointer).is_active_;
       int cached_ping = (**this_pointer).ms_ping_;
       this_mutex->unlock();
@@ -452,7 +472,9 @@ bool TcpClient::IsAvailable() {
     CheckReceiveError();
   }
 
+  main_socket_mutex_.lock();
   bool availability = WaitForData(main_socket_, 0, logger, logger_).has_value();
+  main_socket_mutex_.unlock();
   if (availability) {
     return true;
   }
