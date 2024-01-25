@@ -64,8 +64,12 @@ TcpClient::TcpClient(const char* addr, int port, int ms_ping_threshold,
 
   logger.Log("Creating receiver socket", Debug);
   main_socket_ = socket(AF_INET, SOCK_STREAM, 0);
-  if (main_socket_ < 0) {
+
+  if (main_socket_ < 0 || !SetKeepIdle(main_socket_)) {
     close(heartbeat_socket_);
+    if (main_socket_ >= 0) {
+      close(main_socket_);
+    }
     throw TcpException(TcpException::SocketCreation, logger_, errno);
   }
   logger.Log("Connecting main socket to server", Debug);
