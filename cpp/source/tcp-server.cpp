@@ -23,7 +23,9 @@ TcpServer::TcpServer(int port, int ms_ping_threshold, int ms_loop_period,
 
   logger.Log("Trying to create socket", Debug);
   listener_ = socket(AF_INET, SOCK_STREAM, 0);
-  if (listener_ < 0) {
+  int enabling = 1;
+  if (listener_ < 0 || setsockopt(listener_, SOL_SOCKET, SO_REUSEADDR,
+                                  &enabling, sizeof(enabling)) < 0) {
     throw TcpException(TcpException::SocketCreation, logger_, errno);
   }
   logger.Log("Socket created ", Debug);
