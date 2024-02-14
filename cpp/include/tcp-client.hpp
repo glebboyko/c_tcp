@@ -20,6 +20,7 @@ class TcpServer;
 
 class TcpClient {
  public:
+  TcpClient() noexcept = default;
   TcpClient(const char* addr, int port, int ms_ping_threshold,
             int ms_loop_period, logging_foo f_logger = LoggerCap);
   TcpClient(const char* addr, int port, int ms_ping_threshold,
@@ -27,6 +28,12 @@ class TcpClient {
   TcpClient(const char* addr, int port, logging_foo f_logger = LoggerCap);
   TcpClient(TcpClient&&) noexcept;
   ~TcpClient();
+
+  void Connect(const char* addr, int port, int ms_ping_threshold,
+               int ms_loop_period, logging_foo f_logger = LoggerCap);
+  void Connect(const char* addr, int port, int ms_ping_threshold,
+               logging_foo f_logger = LoggerCap);
+  void Connect(const char* addr, int port, logging_foo f_logger = LoggerCap);
 
   template <typename... Args>
   void Send(const Args&... args) {
@@ -92,7 +99,7 @@ class TcpClient {
   TcpClient** this_pointer_ = nullptr;
   std::mutex* this_mutex_ = nullptr;
 
-  bool is_active_ = true;
+  bool is_active_ = false;
 
   int ms_ping_ = 0;
 

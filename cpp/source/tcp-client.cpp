@@ -16,10 +16,87 @@
 namespace TCP {
 
 TcpClient::TcpClient(const char* addr, int port, int ms_ping_threshold,
-                     int ms_loop_period, logging_foo f_logger)
-    : ping_threshold_(ms_ping_threshold),
-      loop_period_(ms_loop_period),
+                     int ms_loop_period, logging_foo f_logger) {
+  Connect(addr, port, ms_ping_threshold, ms_loop_period, f_logger);
+}
+
+TcpClient::TcpClient(const char* addr, int port, int ms_ping_threshold,
+                     logging_foo f_logger)
+    : TcpClient(addr, port, ms_ping_threshold, kDefLoopPeriod, f_logger) {}
+TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
+    : TcpClient(addr, port, kDefPingThreshold, kDefLoopPeriod, f_logger) {}
+
+TcpClient::TcpClient(TCP::TcpClient&& other) noexcept
+    : main_socket_(other.main_socket_),
+      heartbeat_socket_(other.main_socket_),
+      ping_threshold_(other.ping_threshold_),
+      loop_period_(other.loop_period_),
+      heartbeat_thread_(std::move(other.heartbeat_thread_)),
+      this_pointer_(other.this_pointer_),
+      this_mutex_(other.this_mutex_),
+      is_active_(other.is_active_),
+      ms_ping_(other.ms_ping_),
+      logger_(other.logger_) {
+  if (!is_active_) {
+    return;
+  }
+  LClient logger(LClient::FMoveConstructor, this, logger_);
+  logger.Log("Building TCP-Client via move constructor", Debug);
+
+  logger.Log("Locking mutex", Debug);
+  this_mutex_->lock();
+  logger.Log("Mutex locked", Debug);
+  *this_pointer_ = this;
+  this_mutex_->unlock();
+
+  other.is_active_ = false;
+  logger.Log("TCP-Client is built via move constructor", Info);
+}
+TcpClient::TcpClient(int heartbeat_socket, int main_socket, int ping_threshold,
+                     int loop_period, logging_foo f_logger)
+    : heartbeat_socket_(heartbeat_socket),
+      main_socket_(main_socket),
+      ping_threshold_(ping_threshold),
+      loop_period_(loop_period),
       logger_(f_logger) {
+  LClient logger(LClient::FFromServerConstructor, this, logger_);
+  logger.Log("Building TCP-Client via move constructor", Debug);
+
+  logger.Log("Creating heartbeat thread", Debug);
+  try {
+    this_pointer_ = new TcpClient*(this);
+    this_mutex_ = new std::mutex();
+
+    heartbeat_thread_ =
+        std::thread(HeartBeatServer, this_pointer_, this_mutex_);
+  } catch (std::exception& exception) {
+    logger.Log("Error while creating thread", Error);
+    close(heartbeat_socket_);
+    close(main_socket_);
+    delete this_pointer_;
+    delete this_mutex_;
+
+    throw exception;
+  }
+  logger.Log("TCP-Client is built via server constructor", Info);
+}
+TcpClient::~TcpClient() {
+  StopClient();
+
+  LClient(LClient::FDestructor, this, logger_)
+      .Log("TCP-Client destructed", Info);
+}
+
+void TcpClient::Connect(const char* addr, int port, int ms_ping_threshold,
+                        int ms_loop_period, logging_foo f_logger) {
+  if (is_active_) {
+    throw TcpException(TcpException::Connection, f_logger);
+  }
+
+  ping_threshold_ = ms_ping_threshold;
+  loop_period_ = ms_loop_period;
+  logger_ = f_logger;
+
   LClient logger(LClient::FConstructor, this, logger_);
 
   logger.Log("Creating sender socket", Debug);
@@ -129,74 +206,16 @@ TcpClient::TcpClient(const char* addr, int port, int ms_ping_threshold,
     throw exception;
   }
 
+  is_active_ = true;
+
   logger.Log("TcpClient created", Info);
 }
-
-TcpClient::TcpClient(const char* addr, int port, int ms_ping_threshold,
-                     logging_foo f_logger)
-    : TcpClient(addr, port, ms_ping_threshold, kDefLoopPeriod, f_logger) {}
-TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
-    : TcpClient(addr, port, kDefPingThreshold, kDefLoopPeriod, f_logger) {}
-
-TcpClient::TcpClient(TCP::TcpClient&& other) noexcept
-    : main_socket_(other.main_socket_),
-      heartbeat_socket_(other.main_socket_),
-      ping_threshold_(other.ping_threshold_),
-      loop_period_(other.loop_period_),
-      heartbeat_thread_(std::move(other.heartbeat_thread_)),
-      this_pointer_(other.this_pointer_),
-      this_mutex_(other.this_mutex_),
-      is_active_(other.is_active_),
-      ms_ping_(other.ms_ping_),
-      logger_(other.logger_) {
-  if (!is_active_) {
-    return;
-  }
-  LClient logger(LClient::FMoveConstructor, this, logger_);
-  logger.Log("Building TCP-Client via move constructor", Debug);
-
-  logger.Log("Locking mutex", Debug);
-  this_mutex_->lock();
-  logger.Log("Mutex locked", Debug);
-  *this_pointer_ = this;
-  this_mutex_->unlock();
-
-  other.is_active_ = false;
-  logger.Log("TCP-Client is built via move constructor", Info);
+void TcpClient::Connect(const char* addr, int port, int ms_ping_threshold,
+                        logging_foo f_logger) {
+  Connect(addr, port, ms_ping_threshold, kDefLoopPeriod, f_logger);
 }
-TcpClient::TcpClient(int heartbeat_socket, int main_socket, int ping_threshold,
-                     int loop_period, logging_foo f_logger)
-    : heartbeat_socket_(heartbeat_socket),
-      main_socket_(main_socket),
-      ping_threshold_(ping_threshold),
-      loop_period_(loop_period),
-      logger_(f_logger) {
-  LClient logger(LClient::FFromServerConstructor, this, logger_);
-  logger.Log("Building TCP-Client via move constructor", Debug);
-
-  logger.Log("Creating heartbeat thread", Debug);
-  try {
-    this_pointer_ = new TcpClient*(this);
-    this_mutex_ = new std::mutex();
-
-    heartbeat_thread_ =
-        std::thread(HeartBeatServer, this_pointer_, this_mutex_);
-  } catch (std::exception& exception) {
-    logger.Log("Error while creating thread", Error);
-    close(heartbeat_socket_);
-    close(main_socket_);
-    delete this_pointer_;
-    delete this_mutex_;
-
-    throw exception;
-  }
-  logger.Log("TCP-Client is built via server constructor", Info);
-}
-TcpClient::~TcpClient() {
-  StopClient();
-
-  LClient(LClient::FDestructor, this, logger_)
-      .Log("TCP-Client destructed", Info);
+void TcpClient::Connect(const char* addr, int port, logging_foo f_logger) {
+  Connect(addr, port, kDefPingThreshold, kDefLoopPeriod, f_logger);
 }
 
 void TcpClient::StopClient() noexcept {
