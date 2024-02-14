@@ -22,7 +22,6 @@ class TcpServer {
 
   void CloseListener() noexcept;
   bool IsListenerOpen() const noexcept;
-  int GetMsPingThreshold() const noexcept;
 
  private:
   static const int kMaxClientLength = 1024;
