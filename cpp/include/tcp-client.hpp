@@ -113,27 +113,66 @@ class TcpClient {
   static void HeartBeatServer(TcpClient** this_pointer,
                               std::mutex* this_mutex) noexcept;
 
+  // From string to args
+  template <IOFriendly T>
+  void ToArg(std::stringstream& stream, T& var) {
+    stream >> var;
+  }
+
+  template <typename T>
+    requires(!IOFriendly<T>)
+  void ToArg(std::stringstream& stream, T& var) {
+    size_t cont_size;
+    stream >> cont_size;
+
+    for (size_t i = 0; i < cont_size; ++i) {
+      typename T::value_type val;
+      ToArg(stream, val);
+      var.push_back(std::move(val));
+    }
+  }
+
   void ToArgs(std::stringstream& stream);
   template <typename Head, typename... Tail>
   void ToArgs(std::stringstream& stream, Head& head, Tail&... tail) {
-    stream >> head;
+    ToArg(stream, head);
     if (stream.eof()) {
       return;
     }
     ToArgs(stream, tail...);
   }
-  void FromArgs(std::string& output);
-  template <typename Head, typename... Tail>
-  void FromArgs(std::string& output, const Head& head, const Tail&... tail) {
+
+  // From args to string
+  template <IOFriendly T>
+  void FromArg(std::string& output, const T& var) {
     std::stringstream stream;
-    stream << head;
-    std::string str_head;
-    stream >> str_head;
+    stream << var;
+    std::string str;
+    stream >> str;
 
     if (!output.empty()) {
       output.push_back(' ');
     }
-    output += str_head;
+    output += str;
+  }
+
+  template <typename T>
+    requires(!IOFriendly<T>)
+  void FromArg(std::string& output, const T& var) {
+    if (!output.empty()) {
+      output.push_back(' ');
+    }
+    output += std::to_string(var.size());
+
+    for (auto iter = var.begin(); iter != var.end(); ++iter) {
+      FromArg(output, *iter);
+    }
+  }
+
+  void FromArgs(std::string& output);
+  template <typename Head, typename... Tail>
+  void FromArgs(std::string& output, const Head& head, const Tail&... tail) {
+    FromArg(output, head);
 
     FromArgs(output, tail...);
   }
