@@ -142,8 +142,8 @@ concept OFriendlyCont = requires(T val) {
 
 template <typename T>
 concept IFriendlyCont = requires(T val) {
-  val.push_back(std::declval<typename T::iterator::value_type>());
-  requires IOFriendly<typename T::iterator::value_type>;
+  val.push_back(std::declval<typename T::value_type>());
+  requires IOFriendly<typename T::value_type>;
 };
 
 }  // namespace TCP
