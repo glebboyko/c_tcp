@@ -130,20 +130,4 @@ concept IOFriendly = requires(T val) {
   std::declval<std::stringstream>() << val;
 };
 
-template <typename T>
-concept OFriendlyCont = requires(T val) {
-  std::is_same<decltype(++val.begin()), typename T::iterator>();
-  std::is_same<decltype(val.end()), typename T::iterator>();
-
-  { val.size() } -> std::convertible_to<size_t>;
-
-  requires IOFriendly<typename T::iterator::value_type>;
-};
-
-template <typename T>
-concept IFriendlyCont = requires(T val) {
-  val.push_back(std::declval<typename T::value_type>());
-  requires IOFriendly<typename T::value_type>;
-};
-
 }  // namespace TCP
