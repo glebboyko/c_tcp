@@ -103,7 +103,7 @@ class TcpClient {
 
   int ms_ping_ = 0;
 
-  logging_foo logger_;
+  logging_foo logger_ = LoggerCap;
 
   TcpClient(int heartbeat_socket, int main_socket, int ping_threshold,
             int loop_period, logging_foo f_logger);
