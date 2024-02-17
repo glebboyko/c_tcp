@@ -422,49 +422,97 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
     return "";
   }
   logger.Log("Data is available. Receiving", Debug);
-  auto message_size = RawRecv(main_socket_, kULLMaxDigits + 1);
-  if (message_size.empty()) {
+  auto m_full_block_num = RawRecv(main_socket_, kULLMaxDigits + 1);
+  if (m_full_block_num.empty()) {
     CheckReceiveError();
     throw TcpException(TcpException::Receiving, logger_, errno);
   }
-  if (message_size.size() != kULLMaxDigits + 1) {
+  if (m_full_block_num.size() != kULLMaxDigits + 1) {
+    throw TcpException(TcpException::Receiving, logger_, 0, true);
+  }
+  auto m_last_block_size = RawRecv(main_socket_, kULLMaxDigits + 1);
+  if (m_last_block_size.empty()) {
+    CheckReceiveError();
+    throw TcpException(TcpException::Receiving, logger_, errno);
+  }
+  if (m_last_block_size.size() != kULLMaxDigits + 1) {
     throw TcpException(TcpException::Receiving, logger_, 0, true);
   }
 
-  size_t size = std::stoll(message_size);
-  logger.Log("Message size: " + std::to_string(size), Debug);
+  size_t full_block_num = std::stoll(m_full_block_num);
+  size_t last_block_size = std::stoll(m_last_block_size);
+
+  logger.Log("Number of full blocks: " + std::to_string(full_block_num) +
+                 ". Last block size: " + std::to_string(last_block_size),
+             Debug);
 
   std::string result;
 
   logger.Log("Receiving main data", Debug);
-  while (result.size() < size) {
-    auto message = RawRecv(main_socket_, size - result.size());
-    if (message.empty()) {
+  for (size_t i = 0; i < full_block_num; ++i) {
+    auto block = RawRecv(main_socket_, BLOCK_SIZE + 1);
+    if (block.empty()) {
       throw TcpException(TcpException::Receiving, logger_, errno);
     }
-    result += message;
-
-    logger.Log("Received " + std::to_string(message.size()), Debug);
+    result += block;
   }
+  auto part_block = RawRecv(main_socket_, last_block_size + 1);
+  if (part_block.empty()) {
+    throw TcpException(TcpException::Receiving, logger_, errno);
+  }
+  result += part_block;
   logger.Log("Message received", Info);
   return result;
 }
 void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
   logger.Log("Creating to_send string", Debug);
-  std::string to_send = std::to_string(message.size() + 1);
-  for (size_t i = to_send.size(); i < kULLMaxDigits + 1; ++i) {
-    to_send.push_back('\0');
+  size_t full_block_num = message.size() / BLOCK_SIZE;
+  size_t last_block_size = message.size() - (full_block_num * BLOCK_SIZE);
+
+  std::string s_full_block_num = std::to_string(full_block_num);
+  while (s_full_block_num.size() < kULLMaxDigits + 1) {
+    s_full_block_num.push_back('\0');
+  }
+  std::string s_last_block_size = std::to_string(last_block_size);
+  while (s_last_block_size.size() < kULLMaxDigits + 1) {
+    s_last_block_size.push_back('\0');
   }
 
-  to_send += message;
   logger.Log("Trying to send data", Debug);
-  auto answ = RawSend(main_socket_, to_send, to_send.size() + 1);
+  auto ctrl_answ = RawSend(main_socket_, s_full_block_num + s_last_block_size,
+                           (kULLMaxDigits + 1) * 2);
+  if (ctrl_answ < 0) {
+    throw TcpException(TcpException::Sending, logger_, errno);
+  }
+  if (ctrl_answ != (kULLMaxDigits + 1) * 2) {
+    throw TcpException(TcpException::Sending, logger_, 0, true);
+  }
+
+  logger.Log("Sending main block", Debug);
+  for (size_t i = 0; i < full_block_num; ++i) {
+    auto answ =
+        RawSend(main_socket_,
+                std::string(message.c_str() + (i * BLOCK_SIZE), BLOCK_SIZE),
+                BLOCK_SIZE + 1);
+    if (answ < 0) {
+      throw TcpException(TcpException::Sending, logger_, errno);
+    }
+    if (answ != BLOCK_SIZE + 1) {
+      throw TcpException(TcpException::Sending, logger_, 0, true);
+    }
+  }
+  auto answ =
+      RawSend(main_socket_,
+              std::string(message.c_str() + (full_block_num * BLOCK_SIZE),
+                          last_block_size),
+              last_block_size + 1);
   if (answ < 0) {
     throw TcpException(TcpException::Sending, logger_, errno);
   }
-  if (answ != to_send.size() + 1) {
+  if (answ != last_block_size + 1) {
     throw TcpException(TcpException::Sending, logger_, 0, true);
   }
+
   logger.Log("Message sent successfully", Info);
 }
 
