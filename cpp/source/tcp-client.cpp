@@ -62,6 +62,8 @@ TcpClient::TcpClient(int heartbeat_socket, int main_socket, int ping_threshold,
   LClient logger(LClient::FFromServerConstructor, this, logger_);
   logger.Log("Building TCP-Client via move constructor", Debug);
 
+  is_active_ = true;
+
   logger.Log("Creating heartbeat thread", Debug);
   try {
     this_pointer_ = new TcpClient*(this);
@@ -189,9 +191,11 @@ void TcpClient::Connect(const char* addr, int port, int ms_ping_threshold,
   try {
     this_pointer_ = new TcpClient*(this);
     this_mutex_ = new std::mutex();
+    is_active_ = true;
     heartbeat_thread_ =
         std::thread(&TcpClient::HeartBeatClient, this_pointer_, this_mutex_);
   } catch (std::exception& exception) {
+    is_active_ = false;
     delete this_pointer_;
     delete this_mutex_;
 
@@ -205,8 +209,6 @@ void TcpClient::Connect(const char* addr, int port, int ms_ping_threshold,
                Error);
     throw exception;
   }
-
-  is_active_ = true;
 
   logger.Log("TcpClient created", Info);
 }
