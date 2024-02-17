@@ -438,11 +438,10 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
 
   logger.Log("Receiving main data", Debug);
   while (result.size() < size) {
-    auto message = RawRecv(main_socket_, size);
+    auto message = RawRecv(main_socket_, size - result.size());
     if (message.empty()) {
       throw TcpException(TcpException::Receiving, logger_, errno);
     }
-    size -= message.size();
     result += message;
 
     logger.Log("Received " + std::to_string(message.size()), Debug);
