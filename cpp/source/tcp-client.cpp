@@ -433,22 +433,22 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
 
   size_t size = std::stoll(message_size);
   logger.Log("Message size: " + std::to_string(size), Debug);
-  logger.Log("Checking for data availability", Debug);
-  if (!WaitForData(main_socket_, 0, logger, logger_).has_value()) {
-    logger.Log("Data is not available", Debug);
-    throw TcpException(TcpException::Receiving, logger_, 0, true);
-  }
 
-  logger.Log("Main data is available. Receiving data", Debug);
-  auto message = RawRecv(main_socket_, size);
-  if (message.empty()) {
-    throw TcpException(TcpException::Receiving, logger_, errno);
-  }
-  if (message.size() != size) {
-    throw TcpException(TcpException::Receiving, logger_, 0, true);
+  std::string result;
+
+  logger.Log("Receiving main data", Debug);
+  while (result.size() < size) {
+    auto message = RawRecv(main_socket_, size);
+    if (message.empty()) {
+      throw TcpException(TcpException::Receiving, logger_, errno);
+    }
+    size -= message.size();
+    result += message;
+
+    logger.Log("Received " + std::to_string(message.size()), Debug);
   }
   logger.Log("Message received", Info);
-  return message;
+  return result;
 }
 void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
   logger.Log("Creating to_send string", Debug);
