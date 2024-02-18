@@ -471,15 +471,6 @@ void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
   size_t full_block_num = message.size() / BLOCK_SIZE;
   size_t last_block_size = message.size() - (full_block_num * BLOCK_SIZE);
 
-  std::string s_full_block_num = std::to_string(full_block_num);
-  while (s_full_block_num.size() < kULLMaxDigits + 1) {
-    s_full_block_num.push_back('\0');
-  }
-  std::string s_last_block_size = std::to_string(last_block_size);
-  while (s_last_block_size.size() < kULLMaxDigits + 1) {
-    s_last_block_size.push_back('\0');
-  }
-
   logger.Log("Trying to send data", Debug);
   auto ctrl_answ = RawSend(
       main_socket_,
