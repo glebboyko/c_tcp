@@ -166,8 +166,8 @@ class TcpClient:
             block = RawRecv(self.__main_socket, self.block_size)
             message = message + block
 
-        part_block = RawRecv(self.__main_socket, part_block_num)
-        message = message + part_block
+        part_block = RawRecv(self.__main_socket, part_block_num + 1)
+        message = message + part_block[:-1]
 
         return message.split(' ')
 
