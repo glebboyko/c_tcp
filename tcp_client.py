@@ -60,6 +60,8 @@ def WaitForData(sock: socket.socket, timeout: float) -> int:
 
 
 class TcpClient:
+    block_size = 1024
+
     def __init__(self, host: str, port: int, ms_ping_threshold=1000, ms_loop_period=100):
         self.__ping_threshold = ms_ping_threshold
         self.__loop_period = ms_loop_period
@@ -132,10 +134,16 @@ class TcpClient:
             raise ConnectionResetError("Peer is not connected")
 
         data = ToStr(args)
-        b_num = FillStr(str(len(data) + 1), kULLMaxDigits + 1)
 
-        message = b_num + data
-        RawSend(self.__main_socket, message, len(message) + 1)
+        full_block_num = int(len(data) / self.block_size)
+        part_block_size = len(data) - (full_block_num * self.block_size)
+
+        RawSend(self.__main_socket, str(full_block_num) + " " + str(part_block_size), (kULLMaxDigits + 1) * 2)
+
+        for i in range(full_block_num):
+            RawSend(self.__main_socket, data[i * self.block_size:i * (self.block_size + 1)], self.block_size)
+
+        RawSend(self.__main_socket, data[full_block_num * self.block_size:], part_block_size + 1)
 
     def Receive(self, timeout: int) -> List[str]:
         if not self.__is_active and not self.IsConnected():
@@ -149,12 +157,19 @@ class TcpClient:
         if waiting == -1:
             return []
 
-        b_num = GetNum(RawRecv(self.__main_socket, kULLMaxDigits + 1))
+        control_block = RawRecv(self.__main_socket, (kULLMaxDigits + 1) * 2)
+        full_block_num = GetNum(control_block[:control_block.find(' ')])
+        part_block_num = GetNum(control_block[control_block.find(' ') + 1:])
 
-        if WaitForData(self.__main_socket, 0) < 0:
-            raise RuntimeError("Protocol breaking")
+        message = ""
+        for i in range(full_block_num):
+            block = RawRecv(self.__main_socket, self.block_size)
+            message = message + block
 
-        return RawRecv(self.__main_socket, b_num)[:-1].split(' ')
+        part_block = RawRecv(self.__main_socket, part_block_num)
+        message = message + part_block[:-1]
+
+        return message.split(' ')
 
     def GetMsPingThreshold(self):
         return self.__ping_threshold
