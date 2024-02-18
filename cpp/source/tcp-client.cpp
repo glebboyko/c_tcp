@@ -28,7 +28,7 @@ TcpClient::TcpClient(const char* addr, int port, TCP::logging_foo f_logger)
 
 TcpClient::TcpClient(TCP::TcpClient&& other) noexcept
     : main_socket_(other.main_socket_),
-      heartbeat_socket_(other.main_socket_),
+      heartbeat_socket_(other.heartbeat_socket_),
       ping_threshold_(other.ping_threshold_),
       loop_period_(other.loop_period_),
       heartbeat_thread_(std::move(other.heartbeat_thread_)),
@@ -422,25 +422,20 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
     return "";
   }
   logger.Log("Data is available. Receiving", Debug);
-  auto m_full_block_num = RawRecv(main_socket_, kULLMaxDigits + 1);
-  if (m_full_block_num.empty()) {
+  auto control_block = RawRecv(main_socket_, (kULLMaxDigits + 1) * 2);
+  if (control_block.empty()) {
     CheckReceiveError();
     throw TcpException(TcpException::Receiving, logger_, errno);
   }
-  if (m_full_block_num.size() != kULLMaxDigits + 1) {
-    throw TcpException(TcpException::Receiving, logger_, 0, true);
-  }
-  auto m_last_block_size = RawRecv(main_socket_, kULLMaxDigits + 1);
-  if (m_last_block_size.empty()) {
-    CheckReceiveError();
-    throw TcpException(TcpException::Receiving, logger_, errno);
-  }
-  if (m_last_block_size.size() != kULLMaxDigits + 1) {
+  if (control_block.size() != (kULLMaxDigits + 1) * 2) {
     throw TcpException(TcpException::Receiving, logger_, 0, true);
   }
 
-  size_t full_block_num = std::stoll(m_full_block_num);
-  size_t last_block_size = std::stoll(m_last_block_size);
+  auto delimiter = control_block.begin() + control_block.find(' ') + 1;
+  size_t full_block_num =
+      std::stoll(std::string(control_block.begin(), delimiter));
+  size_t last_block_size =
+      std::stoll(std::string(delimiter, control_block.end()));
 
   logger.Log("Number of full blocks: " + std::to_string(full_block_num) +
                  ". Last block size: " + std::to_string(last_block_size),
@@ -450,9 +445,12 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
 
   logger.Log("Receiving main data", Debug);
   for (size_t i = 0; i < full_block_num; ++i) {
-    auto block = RawRecv(main_socket_, BLOCK_SIZE + 1);
+    auto block = RawRecv(main_socket_, BLOCK_SIZE);
     if (block.empty()) {
       throw TcpException(TcpException::Receiving, logger_, errno);
+    }
+    if (block.size() != BLOCK_SIZE) {
+      throw TcpException(TcpException::Receiving, logger_, 0, true);
     }
     result += block;
   }
@@ -460,6 +458,10 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
   if (part_block.empty()) {
     throw TcpException(TcpException::Receiving, logger_, errno);
   }
+  if (part_block.size() != last_block_size + 1) {
+    throw TcpException(TcpException::Receiving, logger_, 0, true);
+  }
+
   result += part_block;
   logger.Log("Message received", Info);
   return result;
@@ -479,8 +481,10 @@ void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
   }
 
   logger.Log("Trying to send data", Debug);
-  auto ctrl_answ = RawSend(main_socket_, s_full_block_num + s_last_block_size,
-                           (kULLMaxDigits + 1) * 2);
+  auto ctrl_answ = RawSend(
+      main_socket_,
+      std::to_string(full_block_num) + " " + std::to_string(last_block_size),
+      (kULLMaxDigits + 1) * 2);
   if (ctrl_answ < 0) {
     throw TcpException(TcpException::Sending, logger_, errno);
   }
@@ -493,11 +497,11 @@ void TcpClient::StrSend(const std::string& message, TCP::Logger& logger) {
     auto answ =
         RawSend(main_socket_,
                 std::string(message.c_str() + (i * BLOCK_SIZE), BLOCK_SIZE),
-                BLOCK_SIZE + 1);
+                BLOCK_SIZE);
     if (answ < 0) {
       throw TcpException(TcpException::Sending, logger_, errno);
     }
-    if (answ != BLOCK_SIZE + 1) {
+    if (answ != BLOCK_SIZE) {
       throw TcpException(TcpException::Sending, logger_, 0, true);
     }
   }
