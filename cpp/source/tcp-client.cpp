@@ -89,6 +89,43 @@ TcpClient::~TcpClient() {
       .Log("TCP-Client destructed", Info);
 }
 
+TcpClient& TcpClient::operator=(TCP::TcpClient&& other) {
+  LClient logger(LClient::FMoveAssignmentOperator, this, logger_);
+  logger.Log("Method run from " + GetAddress(&other), Info);
+  logger.Log("Stopping client", Debug);
+
+  StopClient();
+  main_socket_ = other.main_socket_;
+  heartbeat_socket_ = other.heartbeat_socket_;
+  ping_threshold_ = other.ping_threshold_;
+  loop_period_ = other.loop_period_;
+  heartbeat_thread_ = std::move(other.heartbeat_thread_);
+  this_pointer_ = other.this_pointer_;
+  this_mutex_ = other.this_mutex_;
+  is_active_ = other.is_active_;
+  ms_ping_ = other.ms_ping_;
+  logger_ = other.logger_;
+
+  logger = LClient(LClient::FMoveAssignmentOperator, this, logger_);
+
+  logger.Log("Variables copied", Info);
+
+  if (!is_active_){
+    logger.Log("Client is not active. Disconnecting", Info);
+    return *this;
+  }
+
+  logger.Log("Changing this_pointer. Locking mutex", Debug);
+  this_mutex_->lock();
+  *this_pointer_ = this;
+  this_mutex_ -> unlock();
+
+  other.is_active_ = false;
+
+  logger.Log("Client assigned successfully", Info);
+  return *this;
+}
+
 void TcpClient::Connect(const char* addr, int port, int ms_ping_threshold,
                         int ms_loop_period, logging_foo f_logger) {
   if (is_active_) {

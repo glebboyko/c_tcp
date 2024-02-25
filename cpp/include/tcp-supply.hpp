@@ -84,6 +84,7 @@ class LClient : public Logger {
   enum LAction {
     FConstructor,
     FMoveConstructor,
+    FMoveAssignmentOperator,
     FFromServerConstructor,
     FDestructor,
     FHeartBeatLoop,
@@ -129,5 +130,7 @@ concept IOFriendly = requires(T val) {
   std::declval<std::stringstream>() >> val;
   std::declval<std::stringstream>() << val;
 };
+
+std::string GetAddress(void* pointer);
 
 }  // namespace TCP

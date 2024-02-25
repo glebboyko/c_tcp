@@ -29,6 +29,8 @@ class TcpClient {
   TcpClient(TcpClient&&) noexcept;
   ~TcpClient();
 
+  TcpClient& operator=(TcpClient&&);
+
   void Connect(const char* addr, int port, int ms_ping_threshold,
                int ms_loop_period, logging_foo f_logger = LoggerCap);
   void Connect(const char* addr, int port, int ms_ping_threshold,

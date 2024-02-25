@@ -63,6 +63,8 @@ std::string LClient::GetAction() const {
       return "CONSTRUCTOR";
     case FMoveConstructor:
       return "MOVE CONSTRUCTOR";
+    case FMoveAssignmentOperator:
+      return "MOVE ASSIGNMENT OPERATOR";
     case FFromServerConstructor:
       return "SERVER CONSTRUCTOR";
     case FDestructor:
