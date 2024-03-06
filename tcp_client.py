@@ -73,6 +73,7 @@ class TcpClient:
             raise TimeoutError("Password waiting timeout")
         password = RawRecv(self.__heartbeat_socket, kULLMaxDigits + 1)
 
+        self.SetKeepIdle(self.__main_socket)
         self.__main_socket.connect((host, port))
         RawSend(self.__main_socket, password, kULLMaxDigits + 1)
 
@@ -230,7 +231,17 @@ class TcpClient:
             self.__ms_ping = -1
             self.__mutex.release()
 
-    __main_socket = socket.socket()
+    def SetKeepIdle(self, sock):
+        on = 1
+        idle_interval = 60
+        idle_count = 3
+
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, on)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, idle_interval)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, idle_interval)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, idle_count)
+
+    __main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     __heartbeat_socket = socket.socket()
 
     __heartbeat_thread: threading.Thread
