@@ -96,19 +96,30 @@ class TcpClient:
     def StopClient(self):
         if not self.__is_active:
             return
+        self.__mutex.acquire()
         self.__is_active = False
+        self.__mutex.release()
         self.__heartbeat_thread.join()
 
         self.__main_socket.close()
         self.__heartbeat_socket.close()
 
     def IsConnected(self) -> bool:
+        self.__mutex.acquire()
         if not self.__is_active:
+            self.__mutex.release()
             return False
-        return self.__ms_ping >= 0
+
+        ms_ping = self.__ms_ping
+        self.__mutex.release()
+        return ms_ping >= 0
 
     def IsAvailable(self) -> bool:
-        if not self.__is_active and not self.IsConnected():
+        self.__mutex.acquire()
+        is_active = self.__is_active
+        self.__mutex.release()
+
+        if not is_active and not self.IsConnected():
             self.StopClient()
             raise ConnectionResetError("Peer is not available")
 
@@ -125,9 +136,12 @@ class TcpClient:
         return True
 
     def GetPing(self) -> int:
-        if self.__ms_ping == -1:
+        self.__mutex.acquire()
+        ms_ping = self.__ms_ping
+        self.__mutex.release()
+        if ms_ping == -1:
             raise ConnectionResetError("Peer is not connected")
-        return self.__ms_ping
+        return ms_ping
 
     def Send(self, *args):
         if not self.IsConnected():
@@ -146,7 +160,11 @@ class TcpClient:
         RawSend(self.__main_socket, data[full_block_num * self.block_size:], part_block_size + 1)
 
     def Receive(self, timeout: int) -> List[str]:
-        if not self.__is_active and not self.IsConnected():
+        self.__mutex.acquire()
+        is_active = self.__is_active
+        self.__mutex.release()
+
+        if not is_active and not self.IsConnected():
             raise ConnectionResetError("Peer is not connected")
 
         waiting = WaitForData(self.__main_socket, timeout)
@@ -180,27 +198,43 @@ class TcpClient:
             while True:
                 start_time = GetMsTime()
                 waiting_time = WaitForData(self.__heartbeat_socket, self.__loop_period)
+
+                self.__mutex.acquire()
                 if not self.__is_active:
+                    self.__mutex.release()
                     return
+
                 if waiting_time == -2:
                     self.__ms_ping = -1
+                    self.__mutex.release()
                     return
                 if waiting_time == -1:
                     if GetMsTime() - last_connection > self.__ping_threshold:
                         self.__ms_ping = -1
+                        self.__mutex.release()
                         return
+                    self.__mutex.release()
                     continue
-                self.__ms_ping = GetNum(RawRecv(self.__heartbeat_socket, kULLMaxDigits + 1))
+                self.__mutex.release()
+
+                ms_ping = GetNum(RawRecv(self.__heartbeat_socket, kULLMaxDigits + 1))
+                self.__mutex.acquire()
+                self.__ms_ping = ms_ping
+                self.__mutex.release()
+
                 recv_time = start_time + waiting_time
                 RawSend(self.__heartbeat_socket, str(GetMsTime() - recv_time), kULLMaxDigits + 1)
                 last_connection = GetMsTime()
         except:
+            self.__mutex.acquire()
             self.__ms_ping = -1
+            self.__mutex.release()
 
     __main_socket = socket.socket()
     __heartbeat_socket = socket.socket()
 
     __heartbeat_thread: threading.Thread
+    __mutex = threading.Lock()
 
     __is_active = True
 
