@@ -2,6 +2,17 @@
 
 #args: directory to save built
 
+function dir_creator {
+  dir="$1"
+  rm -rf "${dir}"
+  mkdir "${dir}"
+  test -d "${dir}"
+  if [[ $(echo $?) -eq 1 ]]; then
+    echo "CANNOT CREATE DIR"
+    exit 1
+  fi
+}
+
 if [[ "$#" -ne "1" ]]; then
   echo "USAGE:"
   echo ".sh %directory_to_save_built%"
@@ -9,23 +20,13 @@ if [[ "$#" -ne "1" ]]; then
 fi
 
 final_dir="$1"
-init_dir="$(pwd)"
 
 build_dir="cpp/build"
 
-rm -rf "${build_dir}"
-mkdir "${build_dir}"
-test -d "${build_dir}"
-if [[ $(echo $?) -eq 1 ]]; then
-  echo "CANNOT CREATE BUILD DIR"
-  exit 1
-fi
+dir_creator "${build_dir}"
 
-cd "${build_dir}" || exit 1
-cmake ..
-cmake --build ./
+(cd "${build_dir}" || exit 1; cmake ..; cmake --build ./)
 
-cd "${init_dir}" || exit 1
 cp "${build_dir}/"*.a "${final_dir}"
 
 rm -rf "${build_dir}"
