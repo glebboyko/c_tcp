@@ -116,13 +116,13 @@ class TcpClient {
                               std::mutex* this_mutex) noexcept;
 
   // From string to args
-  template <IOFriendly T>
+  template <IFriendly T>
   void ToArg(std::stringstream& stream, T& var) {
     stream >> var;
   }
 
   template <typename T>
-    requires(!IOFriendly<T>)
+    requires(!IFriendly<T>)
   void ToArg(std::stringstream& stream, T& var) {
     size_t cont_size;
     stream >> cont_size;
@@ -145,7 +145,7 @@ class TcpClient {
   }
 
   // From args to string
-  template <IOFriendly T>
+  template <OFriendly T>
   void FromArg(std::string& output, const T& var) {
     std::stringstream stream;
     stream << var;
@@ -159,7 +159,7 @@ class TcpClient {
   }
 
   template <typename T>
-    requires(!IOFriendly<T>)
+    requires(!OFriendly<T>)
   void FromArg(std::string& output, const T& var) {
     if (!output.empty()) {
       output.push_back(' ');

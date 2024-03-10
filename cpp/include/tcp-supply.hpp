@@ -126,8 +126,11 @@ std::string RawRecv(int dp, size_t length) noexcept;
 bool SetKeepIdle(int dp) noexcept;
 
 template <typename T>
-concept IOFriendly = requires(T val) {
+concept IFriendly = requires(T val) {
   std::declval<std::stringstream>() >> val;
+};
+template <typename T>
+concept OFriendly = requires(T val) {
   std::declval<std::stringstream>() << val;
 };
 
