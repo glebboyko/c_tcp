@@ -118,7 +118,14 @@ class TcpClient {
   // From string to args
   template <IFriendly T>
   void ToArg(std::stringstream& stream, T& var) {
-    stream >> var;
+    std::string tmp;
+    stream >> tmp;
+    while (!tmp.empty() && tmp.back() == '\0') {
+      tmp.pop_back();
+    }
+    std::stringstream norm_stream;
+    norm_stream << tmp;
+    norm_stream >> var;
   }
 
   template <typename T>
