@@ -88,6 +88,7 @@ class TcpClient:
         except Exception as exception:
             self.__heartbeat_socket.close()
             self.__main_socket.close()
+            raise exception
 
     def __del__(self):
         self.StopClient()
