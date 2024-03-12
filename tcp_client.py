@@ -39,7 +39,7 @@ def GetMsTime() -> int:
 
 def RawSend(sock: socket.socket, message: str, size: int):
     if len(message) < size:
-        message = message + ("\0" * (size - len(message)))
+        message = message + ("\0" * (size - len(message.encode(encoding))))
     sock.send((message[:size]).encode(encoding))
 
 
@@ -150,8 +150,8 @@ class TcpClient:
 
         data = ToStr(args)
 
-        full_block_num = int(len(data) / self.block_size)
-        part_block_size = len(data) - (full_block_num * self.block_size)
+        full_block_num = int(len(data.encode(encoding)) / self.block_size)
+        part_block_size = len(data.encode(encoding)) - (full_block_num * self.block_size)
 
         RawSend(self.__main_socket, str(full_block_num) + " " + str(part_block_size), (kULLMaxDigits + 1) * 2)
 
