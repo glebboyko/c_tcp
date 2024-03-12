@@ -63,35 +63,33 @@ class TcpClient:
     block_size = 1024
 
     def __init__(self, host: str, port: int, ms_ping_threshold=1000, ms_loop_period=100):
-        self.__ping_threshold = ms_ping_threshold
-        self.__loop_period = ms_loop_period
+        try:
+            self.__ping_threshold = ms_ping_threshold
+            self.__loop_period = ms_loop_period
 
-        self.__heartbeat_socket.connect((host, port))
-        RawSend(self.__heartbeat_socket, "0", kULLMaxDigits + 1)
+            self.__heartbeat_socket.connect((host, port))
+            RawSend(self.__heartbeat_socket, "0", kULLMaxDigits + 1)
 
-        if WaitForData(self.__heartbeat_socket, self.__ping_threshold) < 0:
-            raise TimeoutError("Password waiting timeout")
-        password = RawRecv(self.__heartbeat_socket, kULLMaxDigits + 1)
+            if WaitForData(self.__heartbeat_socket, self.__ping_threshold) < 0:
+                raise TimeoutError("Password waiting timeout")
+            password = RawRecv(self.__heartbeat_socket, kULLMaxDigits + 1)
 
-        self.SetKeepIdle(self.__main_socket)
-        self.__main_socket.connect((host, port))
-        RawSend(self.__main_socket, password, kULLMaxDigits + 1)
+            self.SetKeepIdle(self.__main_socket)
+            self.__main_socket.connect((host, port))
+            RawSend(self.__main_socket, password, kULLMaxDigits + 1)
 
-        if WaitForData(self.__heartbeat_socket, self.__ping_threshold) < 0:
-            raise TimeoutError("Signal waiting timeout")
-        if GetNum(RawRecv(self.__main_socket, 1)) != 1:
-            raise RuntimeError("Signal is term")
+            if WaitForData(self.__heartbeat_socket, self.__ping_threshold) < 0:
+                raise TimeoutError("Signal waiting timeout")
+            if GetNum(RawRecv(self.__main_socket, 1)) != 1:
+                raise RuntimeError("Signal is term")
 
-        self.__heartbeat_thread = threading.Thread(target=self.__HeartBeat)
-        self.__heartbeat_thread.start()
-
-        self.__constructed = True
+            self.__heartbeat_thread = threading.Thread(target=self.__HeartBeat)
+            self.__heartbeat_thread.start()
+        except Exception as exception:
+            self.__heartbeat_socket.close()
+            self.__main_socket.close()
 
     def __del__(self):
-        if not self.__constructed:
-            self.__main_socket.close()
-            self.__heartbeat_socket.close()
-            return
         self.StopClient()
 
     def StopClient(self):
@@ -253,4 +251,3 @@ class TcpClient:
     __loop_period: int
 
     __ms_ping = 0
-    __constructed = False
