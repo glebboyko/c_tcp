@@ -74,7 +74,13 @@ class TcpClient:
         password = RawRecv(self.__heartbeat_socket, kULLMaxDigits + 1)
 
         self.SetKeepIdle(self.__main_socket)
-        self.__main_socket.connect((host, port))
+        try:
+            self.__main_socket.connect((host, port))
+        except Exception as exception:
+            self.__heartbeat_socket.close()
+            self.__heartbeat_socket = socket.socket()
+            raise exception
+
         RawSend(self.__main_socket, password, kULLMaxDigits + 1)
 
         if WaitForData(self.__heartbeat_socket, self.__ping_threshold) < 0:
