@@ -118,12 +118,18 @@ class TcpClient {
   // From string to args
   template <IFriendly T>
   void ToArg(std::stringstream& stream, T& var) {
+    if (stream.rdbuf()->in_avail() == 0) {
+      return;
+    }
     stream >> var;
   }
 
   template <typename T>
     requires(!IFriendly<T>)
   void ToArg(std::stringstream& stream, T& var) {
+    if (stream.rdbuf()->in_avail() == 0) {
+      return;
+    }
     size_t cont_size;
     stream >> cont_size;
 
