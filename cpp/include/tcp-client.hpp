@@ -121,7 +121,14 @@ class TcpClient {
     if (stream.rdbuf()->in_avail() == 0) {
       return;
     }
-    stream >> var;
+    std::string tmp;
+    stream >> tmp;
+    while (!tmp.empty() && tmp.back() == '\0') {
+      tmp.pop_back();
+    }
+    std::stringstream norm_stream;
+    norm_stream << tmp;
+    norm_stream >> var;
   }
 
   template <typename T>
