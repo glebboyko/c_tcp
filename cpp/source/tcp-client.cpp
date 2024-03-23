@@ -257,6 +257,23 @@ void TcpClient::Connect(const char* addr, int port, logging_foo f_logger) {
   Connect(addr, port, kDefPingThreshold, kDefLoopPeriod, f_logger);
 }
 
+std::string TcpClient::RecvStr(int ms_timeout) {
+  LClient logger(LClient::FRecv, this, logger_);
+  logger.Log("Starting receiving method", Debug);
+
+  if (!is_active_) {
+    CheckReceiveError();
+  }
+
+  logger.Log("Receiving string", Debug);
+  auto recv_str = StrRecv(ms_timeout, logger);
+  logger.Log(
+      "Method returned string of size " + std::to_string(recv_str.size()),
+      Debug);
+
+  return recv_str;
+}
+
 void TcpClient::StopClient() noexcept {
   LClient logger(LClient::FStopClient, this, logger_);
 

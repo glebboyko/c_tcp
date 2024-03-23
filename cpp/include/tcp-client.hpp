@@ -55,20 +55,13 @@ class TcpClient {
     logger.Log("Message sent", Info);
   }
 
+  std::string RecvStr(int ms_timeout);
+
   template <typename... Args>
   bool Receive(int ms_timeout, Args&... args) {
     LClient logger(LClient::FRecv, this, logger_);
-    logger.Log("Starting receiving method", Debug);
 
-    if (!is_active_) {
-      CheckReceiveError();
-    }
-
-    logger.Log("Receiving string", Debug);
-    auto recv_str = StrRecv(ms_timeout, logger);
-    logger.Log(
-        "Method returned string of size " + std::to_string(recv_str.size()),
-        Debug);
+    auto recv_str = RecvStr(ms_timeout);
     if (recv_str.empty()) {
       return false;
     }
