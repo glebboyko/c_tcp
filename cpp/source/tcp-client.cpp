@@ -503,17 +503,11 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
     if (block.empty()) {
       throw TcpException(TcpException::Receiving, logger_, errno);
     }
-    if (block.size() != BLOCK_SIZE) {
-      throw TcpException(TcpException::Receiving, logger_, 0, true);
-    }
     result += block;
   }
   auto part_block = RawRecv(main_socket_, last_block_size + 1);
   if (part_block.empty()) {
     throw TcpException(TcpException::Receiving, logger_, errno);
-  }
-  if (part_block.size() != last_block_size + 1) {
-    throw TcpException(TcpException::Receiving, logger_, 0, true);
   }
 
   result += part_block;

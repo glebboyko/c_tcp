@@ -188,12 +188,15 @@ std::string RawRecv(int dp, size_t length) noexcept {
   std::vector<char> message(length);
   ssize_t answ = recv(dp, message.data(), length, 0);
 
-  if (answ < 0) {
+  if (answ < 0 || answ != length) {
     return "";
   }
 
   std::string result;
   for (ssize_t i = 0; i < answ; ++i) {
+    if (message[i] == '\0') {
+      break;
+    }
     result.push_back(message[i]);
   }
   return result;
