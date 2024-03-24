@@ -155,8 +155,7 @@ class TcpClient {
   void FromArg(std::string& output, const T& var) {
     std::stringstream stream;
     stream << var;
-    std::string str;
-    stream >> str;
+    std::string str = stream.str();
 
     if (!output.empty()) {
       output.push_back(' ');

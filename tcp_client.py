@@ -3,6 +3,7 @@ from typing import List
 import socket
 import threading
 import select
+from sys import platform
 
 kULLMaxDigits = 20
 encoding = 'utf-8'
@@ -63,6 +64,13 @@ class TcpClient:
     block_size = 1024
 
     def __init__(self, host: str, port: int, ms_ping_threshold=1000, ms_loop_period=100):
+        if self.__used:
+            self.__main_socket.close()
+            self.__heartbeat_socket.close()
+            self.__main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.__heartbeat_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__used = True
+
         self.__ping_threshold = ms_ping_threshold
         self.__loop_period = ms_loop_period
 
@@ -238,6 +246,9 @@ class TcpClient:
             self.__mutex.release()
 
     def SetKeepIdle(self, sock):
+        if platform == "darwin":
+            return
+
         on = 1
         idle_interval = 60
         idle_count = 3
@@ -248,7 +259,7 @@ class TcpClient:
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, idle_count)
 
     __main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    __heartbeat_socket = socket.socket()
+    __heartbeat_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     __heartbeat_thread: threading.Thread
     __mutex = threading.Lock()
@@ -260,3 +271,4 @@ class TcpClient:
 
     __ms_ping = 0
     __constructed = False
+    __used = False
