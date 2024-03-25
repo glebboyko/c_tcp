@@ -500,12 +500,18 @@ std::string TcpClient::StrRecv(int ms_timeout, TCP::Logger& logger) {
   logger.Log("Receiving main data", Debug);
   for (size_t i = 0; i < full_block_num; ++i) {
     auto block = RawRecv(main_socket_, BLOCK_SIZE);
+    while (!block.empty() && block.back() == '\0') {
+      block.pop_back();
+    }
     if (block.empty()) {
       throw TcpException(TcpException::Receiving, logger_, errno);
     }
     result += block;
   }
   auto part_block = RawRecv(main_socket_, last_block_size + 1);
+  while (!part_block.empty() && part_block.back() == '\0') {
+    part_block.pop_back();
+  }
   if (part_block.empty()) {
     throw TcpException(TcpException::Receiving, logger_, errno);
   }
