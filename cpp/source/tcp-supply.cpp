@@ -194,9 +194,6 @@ std::string RawRecv(int dp, size_t length) noexcept {
 
   std::string result;
   for (ssize_t i = 0; i < answ; ++i) {
-    if (message[i] == '\0') {
-      break;
-    }
     result.push_back(message[i]);
   }
   return result;
