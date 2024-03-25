@@ -188,7 +188,7 @@ std::string RawRecv(int dp, size_t length) noexcept {
   std::vector<char> message(length);
   ssize_t answ = recv(dp, message.data(), length, 0);
 
-  if (answ < 0 || answ != length) {
+  if (answ < 0) {
     return "";
   }
 
