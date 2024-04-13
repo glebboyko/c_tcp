@@ -107,7 +107,10 @@ class TcpClient:
         self.__mutex.acquire()
         self.__is_active = False
         self.__mutex.release()
-        self.__heartbeat_thread.join()
+        try:
+            self.__heartbeat_thread.join()
+        except RuntimeError as error:
+            pass
 
         self.__main_socket.close()
         self.__heartbeat_socket.close()
