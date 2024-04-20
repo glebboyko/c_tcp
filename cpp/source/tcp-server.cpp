@@ -21,32 +21,8 @@ TcpServer::TcpServer(int port, int ms_ping_threshold, int ms_loop_period,
       logger_(f_logger) {
   LServer logger(LServer::FConstructor, this, logger_);
 
-  logger.Log("Trying to create socket", Debug);
-  listener_ = socket(AF_INET, SOCK_STREAM, 0);
-  int enabling = 1;
-  if (listener_ < 0 || setsockopt(listener_, SOL_SOCKET, SO_REUSEADDR,
-                                  &enabling, sizeof(enabling)) < 0) {
-    throw TcpException(TcpException::SocketCreation, logger_, errno);
-  }
-  logger.Log("Socket created ", Debug);
-
-  sockaddr_in addr = {.sin_family = AF_INET,
-                      .sin_port = htons(port),
-                      .sin_addr = {htonl(INADDR_ANY)}};
-
-  logger.Log("Trying to bind to " + std::to_string(port), Debug);
-  if (bind(listener_, (sockaddr*)&addr, sizeof(addr)) < 0) {
-    close(listener_);
-    throw TcpException(TcpException::Binding, logger_, errno);
-  }
-  logger.Log("Bound", Debug);
-
-  logger.Log("Trying to listen", Debug);
-  if (listen(listener_, kMaxClientLength) < 0) {
-    close(listener_);
-    throw TcpException(TcpException::Listening, logger_, errno);
-  }
-  logger.Log("Listening", Debug);
+  logger.Log("Trying to connect listener", Debug);
+  ConnectListener();
 
   logger.Log("Creating accepter thread", Debug);
   accept_thread_ = std::thread(&TcpServer::AcceptLoop, this);
@@ -160,7 +136,7 @@ void TcpServer::AcceptLoop() noexcept {
         }
       } catch (...) {
         close(client);
-        throw;
+        continue;
       }
       logger.Log("Client config is available. Trying to receive", Debug);
       auto mode_str = RawRecv(client, kULLMaxDigits + 1);
@@ -218,10 +194,55 @@ void TcpServer::AcceptLoop() noexcept {
         close(client);
       }
     } catch (TcpException& exception) {
-      logger.Log("Caught exception", Debug);
+      logger.Log("Caught exception " + std::string(exception.what()) +
+                     ".\nTrying to reconnect listener",
+                 Warning);
+      try {
+        close(listener_);
+        ConnectListener();
+      } catch (TcpException& exception) {
+        logger.Log("Error occurred while reconnecting listener", Error);
+        CloseListener();
+        return;
+      }
+      logger.Log("Listener reconnected successfully", Info);
     }
     password = (password % LONG_LONG_MAX) + 1;
   }
+}
+
+void TcpServer::ConnectListener() {
+  LServer logger(LServer::FConnectListener, this, logger_);
+
+  logger.Log("Trying to create listener", Debug);
+  listener_ = socket(AF_INET, SOCK_STREAM, 0);
+  int enabling = 1;
+  if (listener_ < 0 || setsockopt(listener_, SOL_SOCKET, SO_REUSEADDR,
+                                  &enabling, sizeof(enabling)) < 0) {
+    logger.Log("Error occurred while creating socket", Error);
+    throw TcpException(TcpException::SocketCreation, logger_, errno);
+  }
+  logger.Log("Socket created", Debug);
+
+  sockaddr_in addr = {.sin_family = AF_INET,
+                      .sin_port = htons(port_),
+                      .sin_addr = {htonl(INADDR_ANY)}};
+
+  logger.Log("Trying to bind to " + std::to_string(port_), Debug);
+  if (bind(listener_, (sockaddr*)&addr, sizeof(addr)) < 0) {
+    close(listener_);
+    logger.Log("Error occurred while binding", Error);
+    throw TcpException(TcpException::Binding, logger_, errno);
+  }
+  logger.Log("Bound", Debug);
+
+  logger.Log("Trying to listen", Debug);
+  if (listen(listener_, kMaxClientLength) < 0) {
+    close(listener_);
+    logger.Log("Error occurred while trying to start listening", Error);
+    throw TcpException(TcpException::Listening, logger_, errno);
+  }
+  logger.Log("Listening", Info);
 }
 
 }  // namespace TCP

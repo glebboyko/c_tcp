@@ -44,6 +44,8 @@ class TcpServer {
 
   std::thread accept_thread_;
   void AcceptLoop() noexcept;
+
+  void ConnectListener();
 };
 
 }  // namespace TCP

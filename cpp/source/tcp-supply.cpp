@@ -42,6 +42,8 @@ std::string LServer::GetAction() const {
       return "ACCEPTER";
     case FLoopAccepter:
       return "ACCEPTER LOOP";
+    case FConnectListener:
+      return "LISTENER CONNECTOR";
     case FCloseListener:
       return "LISTENER CLOSER";
     default:

@@ -67,6 +67,7 @@ class LServer : public Logger {
     FDestructor,
     FAccepter,
     FLoopAccepter,
+    FConnectListener,
     FCloseListener
   };
 
